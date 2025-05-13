@@ -2,17 +2,35 @@ import * as THREE from "three";
 
 let camera, scene, renderer;
 
-let ball, table;
+let ball, robot, upperArmLeft, upperArmRight, upperArm;
 
-function addTableLeg(obj, x, y, z, material) {
-  const geometry = new THREE.BoxGeometry(2, 6, 2);
+function addRobotUpperArm(obj, x, y, z, material, side) {
+  const geometry = new THREE.BoxGeometry(5, 10, 3);
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y - 3, z);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+  
+  if (side === "left") upperArmLeft = mesh;
+  else if (side === "right") upperArmRight = mesh;
+}
+
+function addRobotLowerArm(obj, x, y, z, material) {
+  upperArm = new THREE.BoxGeometry(5, 3, 10);
+  const mesh = new THREE.Mesh(upperArm, material);
+  mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
-function addTableTop(obj, x, y, z, material) {
-  const geometry = new THREE.BoxGeometry(60, 2, 20);
+
+function addRobotTube(obj, x, y, z, material) {
+  upperArm = new THREE.BoxGeometry(1, 10, 1);
+  const mesh = new THREE.Mesh(upperArm, material);
+  mesh.position.set(x, y, z);
+  obj.add(mesh);
+}
+
+function addChest(obj, x, y, z, material) {
+  const geometry = new THREE.BoxGeometry(15, 10, 7);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   obj.add(mesh);
@@ -29,22 +47,28 @@ function createBall(x, y, z) {
   scene.add(ball);
 }
 
-function createTable(x, y, z) {
-  table = new THREE.Object3D();
+function createRobot(x, y, z) {
+  robot = new THREE.Object3D();
 
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
 
-  addTableTop(table, 0, 0, 0, material);
-  addTableLeg(table, -25, -1, -8, material);
-  addTableLeg(table, -25, -1, 8, material);
-  addTableLeg(table, 25, -1, 8, material);
-  addTableLeg(table, 25, -1, -8, material);
+  addChest(robot, 0, 0, 0, material);
+  addRobotUpperArm(robot, 10, 0, -5, material, "right");
+  addRobotUpperArm(robot, -10, 0, -5, material, "left");
 
-  scene.add(table);
+  addRobotLowerArm(upperArmRight, 0, -6.5, 3.5, material);
+  addRobotLowerArm(upperArmLeft, 0, -6.5, 3.5, material);
 
-  table.position.x = x;
-  table.position.y = y;
-  table.position.z = z;
+  addRobotTube(upperArmRight, 2, 3, -2, material);
+  addRobotTube(upperArmLeft, -2, 3, -2, material);
+  //addTableLeg(robot, 25, -1, 8, material);
+  //addTableLeg(robot, 25, -1, -8, material);
+
+  scene.add(robot);
+
+  robot.position.x = x;
+  robot.position.y = y;
+  robot.position.z = z;
 }
 
 function createScene() {
@@ -52,7 +76,7 @@ function createScene() {
 
   scene.add(new THREE.AxesHelper(10));
 
-  createTable(0, 8, 0);
+  createRobot(0, 8, 0);
   createBall(0, 0, 15);
 }
 
@@ -78,7 +102,7 @@ function onKeyDown(e) {
     case 65: //A
     case 97: //a
       ball.material.wireframe = !ball.material.wireframe;
-      table.children.forEach((element) => {
+      robot.children.forEach((element) => {
         element.material.wireframe = !element.material.wireframe;
       });
       break;
