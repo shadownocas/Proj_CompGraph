@@ -2,67 +2,67 @@ import * as THREE from "three";
 
 let camera, scene, renderer;
 
-let ball, robot, upperArmLeft, upperArmRight, upperArm;
+let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup;
+let clock = new THREE.Clock();
+let keyR = false, keyF = false, keyQ = false, keyA = false;
 
-function addRobotUpperArm(obj, x, y, z, material, side) {
-  const geometry = new THREE.BoxGeometry(5, 10, 3);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y, z);
-  obj.add(mesh);
-  
-  if (side === "left") upperArmLeft = mesh;
-  else if (side === "right") upperArmRight = mesh;
+function addGroup(group, parent, x, y, z) { 
+  group.position.set(x, y, z);
+  parent.add(group);
 }
 
-function addRobotLowerArm(obj, x, y, z, material) {
-  upperArm = new THREE.BoxGeometry(5, 3, 10);
-  const mesh = new THREE.Mesh(upperArm, material);
-  mesh.position.set(x, y, z);
-  obj.add(mesh);
-}
-
-
-function addRobotTube(obj, x, y, z, material) {
-  upperArm = new THREE.BoxGeometry(1, 10, 1);
-  const mesh = new THREE.Mesh(upperArm, material);
-  mesh.position.set(x, y, z);
-  obj.add(mesh);
-}
-
-function addChest(obj, x, y, z, material) {
-  const geometry = new THREE.BoxGeometry(15, 10, 7);
+function addBox(obj, x, y, z, material, width, height, depth) {
+  const geometry = new THREE.BoxGeometry(width, height, depth);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   obj.add(mesh);
 }
 
-function createBall(x, y, z) {
-  const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-  const geometry = new THREE.SphereGeometry(4, 10, 10);
-  ball = new THREE.Mesh(geometry, material);
-
-  ball.userData = { jumping: true, step: 0 };
-  ball.position.set(x, y, z);
-
-  scene.add(ball);
+function addCylinder(obj, x, y, z, material, radiust, radiusb, height) {
+  const geometry = new THREE.CylinderGeometry(radiust, radiusb, height);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  mesh.rotation.z = Math.PI / 2 //rodar no eixo z
+  obj.add(mesh);
 }
+
+
 
 function createRobot(x, y, z) {
   robot = new THREE.Object3D();
 
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+  //create the torso
+  addBox(robot, 0, 0, 0, material, 15, 10, 7);
 
-  addChest(robot, 0, 0, 0, material);
-  addRobotUpperArm(robot, 10, 0, -5, material, "right");
-  addRobotUpperArm(robot, -10, 0, -5, material, "left");
+  //create the arms
+  armRightGroup = new THREE.Group();
+  armLeftGroup = new THREE.Group();
+  addGroup(armLeftGroup, robot, 0, 0, 0);
+  addGroup(armRightGroup, robot, 0, 0, 0);
+  addBox(armRightGroup, 10, 0, -5, material, 5, 10, 3);
+  addBox(armLeftGroup, -10, 0, -5, material, 5, 10, 3);
+  addBox(armRightGroup, 10, -6.5, -1.5, material, 5, 3, 10);
+  addBox(armLeftGroup, -10, -6.5, -1.5, material, 5, 3, 10);
+  addBox(armRightGroup, 12, 3, -7, material, 1, 10, 1);
+  addBox(armLeftGroup, -12, 3, -7, material, 1, 10, 1); 
 
-  addRobotLowerArm(upperArmRight, 0, -6.5, 3.5, material);
-  addRobotLowerArm(upperArmLeft, 0, -6.5, 3.5, material);
+  //create the head
+  headGroup = new THREE.Group();
+  addGroup(headGroup, robot, 0, 5, -3.5);
+  addBox(headGroup, 0, 2, 2.5, material, 5, 4, 5);
 
-  addRobotTube(upperArmRight, 2, 3, -2, material);
-  addRobotTube(upperArmLeft, -2, 3, -2, material);
-  //addTableLeg(robot, 25, -1, 8, material);
-  //addTableLeg(robot, 25, -1, -8, material);
+  //create the legs
+  legGroup = new THREE.Group();
+  addGroup(legGroup, robot, 0, -10.5, 0);
+  addCylinder(legGroup, 0, 0, 0, material, 1.5, 1.5, 11);
+  addBox(legGroup, 2, -3.5, 0, material, 3, 4, 3);
+  addBox(legGroup, 3, -14, -0.5, material, 5, 17, 4);
+  
+  //create feet
+  feetGroup = new THREE.Group();
+  addGroup(feetGroup, legGroup, 0, -22.5, -2.5);
+  addBox(feetGroup, 3, -1.5, 3, material, 5, 3, 6);
 
   scene.add(robot);
 
@@ -77,7 +77,7 @@ function createScene() {
   scene.add(new THREE.AxesHelper(10));
 
   createRobot(0, 8, 0);
-  createBall(0, 0, 15);
+
 }
 
 function createCamera() {
@@ -99,17 +99,23 @@ function onResize() {
 
 function onKeyDown(e) {
   switch (e.keyCode) {
-    case 65: //A
-    case 97: //a
-      ball.material.wireframe = !ball.material.wireframe;
-      robot.children.forEach((element) => {
-        element.material.wireframe = !element.material.wireframe;
-      });
+    case 82: // R
+    case 114: // r
+      keyR = true;
       break;
-    case 83: //S
-    case 115: //s
-      ball.userData.jumping = !ball.userData.jumping;
+    case 70: // F
+    case 102: // f
+      keyF = true;
       break;
+    case 81:
+    case 113: // q
+      keyQ = true;
+      break;
+    case 65:
+    case 97: // a
+      keyA = true;
+      break;
+
   }
 }
 
@@ -128,20 +134,86 @@ function init() {
   createCamera();
 
   window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);  
   window.addEventListener("resize", onResize);
 }
 
 function animate() {
-  if (ball.userData.jumping) {
-    ball.userData.step += 0.04;
-    ball.position.y = Math.abs(30 * Math.sin(ball.userData.step));
-    ball.position.z = 15 * Math.cos(ball.userData.step);
-  }
+ 
+  update();
+
   render();
 
   requestAnimationFrame(animate);
 }
 
+function onKeyUp(e) {
+  switch (e.keyCode) {
+    case 82: // R
+    case 114: // r
+      keyR = false;
+    break;
+    case 70: // F
+    case 102: // f
+      keyF = false;
+    break;
+     case 81:
+    case 113: // q
+      keyQ = false;
+      break;
+    case 65:
+    case 97: // a
+      keyA = false;
+      break;
+
+  }
+}
+
+function processKeys(time) {
+  handleRoration(time, keyF, keyR, headGroup);
+  //handleRoration(time, keyQ, keyA, legGroup);
+  //handleRoration(time, keyW, keyS, feetGroup);
+  
+ 
+}
+
+function handleRoration(time, keyForward, keyBackward, group) {
+  let rot = 0;
+  if(keyForward) {
+    rot++;
+  }
+  if(keyBackward) {
+    rot--;
+  }
+  console.log( group.rotation.x);
+  if( group.rotation.x >= -Math.PI && group.rotation.x <= 0) {
+    group.rotation.x += Math.PI/2 * time * rot;
+  }
+  if (group.rotation.x < -Math.PI){
+    group.rotation.x = -Math.PI;  
+  }
+  if (group.rotation.x > 0){
+    group.rotation.x = 0;  
+  }
+
+
+}
+
+function update(){
+  let time = clock.getDelta();
+    processKeys(time);
+    //processAnimations(time);
+  }
+
+  //paa garantir q animacao ocorre a vel constante --> obj.position.x += vel * time;}
+
+  /*para detetar colisao
+  Axmin <= Bxmax; &
+  Aymin <= Bymax;&
+  Bxmin <= Axmax;
+  Bymin <= Aymax;*/
+
 init();
 
 animate();
+
