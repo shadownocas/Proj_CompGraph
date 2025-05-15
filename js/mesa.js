@@ -2,9 +2,10 @@ import * as THREE from "three";
 
 let camera, scene, renderer;
 
-let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup;
+let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
+let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
+ keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false;
 let clock = new THREE.Clock();
-let keyR = false, keyF = false, keyQ = false, keyA = false;
 
 function addGroup(group, parent, x, y, z) { 
   group.position.set(x, y, z);
@@ -18,11 +19,11 @@ function addBox(obj, x, y, z, material, width, height, depth) {
   obj.add(mesh);
 }
 
-function addCylinder(obj, x, y, z, material, radiust, radiusb, height) {
+function addCylinder(obj, x, y, z, material, radiust, radiusb, height, rotate = true) {
   const geometry = new THREE.CylinderGeometry(radiust, radiusb, height);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
-  mesh.rotation.z = Math.PI / 2 //rodar no eixo z
+  if(rotate) mesh.rotation.z = Math.PI / 2 //rodar no eixo z
   obj.add(mesh);
 }
 
@@ -34,6 +35,12 @@ function createRobot(x, y, z) {
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
   //create the torso
   addBox(robot, 0, 0, 0, material, 15, 10, 7);
+  //create top wheels
+  addCylinder(robot, 6.5, -10.5, 0, material, 2.5, 2.5, 2);
+  addCylinder(robot, -6.5, -10.5, 0, material, 2.5, 2.5, 2);
+  //create bumper and abdomen
+  addBox(robot, 0, -10.5, -2.5, material, 11, 3, 2);
+  addBox(robot, 0, -7, 0, material, 5, 4, 7);
 
   //create the arms
   armRightGroup = new THREE.Group();
@@ -51,18 +58,29 @@ function createRobot(x, y, z) {
   headGroup = new THREE.Group();
   addGroup(headGroup, robot, 0, 5, -3.5);
   addBox(headGroup, 0, 2, 2.5, material, 5, 4, 5);
+  addBox(headGroup, 1.5, 2.5, 5.5, material, 2, 1, 1);
+  addBox(headGroup, -1.5, 2.5, 5.5, material, 2, 1, 1);
+  addCylinder(headGroup, 1, 4, 2.5, material, 0, 0.5, 1, false);
+  addCylinder(headGroup, -1, 4, 2.5, material, 0, 0.5, 1, false);
 
   //create the legs
   legGroup = new THREE.Group();
   addGroup(legGroup, robot, 0, -10.5, 0);
   addCylinder(legGroup, 0, 0, 0, material, 1.5, 1.5, 11);
   addBox(legGroup, 2, -3.5, 0, material, 3, 4, 3);
+  addBox(legGroup, -2, -3.5, 0, material, 3, 4, 3);
   addBox(legGroup, 3, -14, -0.5, material, 5, 17, 4);
+  addBox(legGroup, -3, -14, -0.5, material, 5, 17, 4);
+  addCylinder(legGroup, 6.5, -9, 0, material, 2.5, 2.5, 2);
+  addCylinder(legGroup, -6.5, -9, 0, material, 2.5, 2.5, 2);
+  addCylinder(legGroup, 6.5, -19, 0, material, 2.5, 2.5, 2);
+  addCylinder(legGroup, -6.5, -19, 0, material, 2.5, 2.5, 2);
   
   //create feet
   feetGroup = new THREE.Group();
   addGroup(feetGroup, legGroup, 0, -22.5, -2.5);
   addBox(feetGroup, 3, -1.5, 3, material, 5, 3, 6);
+  addBox(feetGroup, -3, -1.5, 3, material, 5, 3, 6);
 
   scene.add(robot);
 
@@ -72,12 +90,28 @@ function createRobot(x, y, z) {
 }
 
 function createScene() {
-  scene = new THREE.Scene();
-
+  scene = new THREE.Scene(); 
+  scene.background = new THREE.Color(0xffffff);
   scene.add(new THREE.AxesHelper(10));
 
   createRobot(0, 8, 0);
+  createContainer(0 , 8 , -51.5)
 
+}
+
+function createContainer(x, y, z) {
+  containerGroup = new THREE.Group();
+  addGroup(containerGroup, scene, x, y, z);
+
+  const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+  addBox(containerGroup, 0, 0, 0, material, 11, 20, 50);
+  addBox(containerGroup, 0, 0, 26.5, material, 11, 3, 3);
+  addCylinder(containerGroup, 6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
+  addCylinder(containerGroup, 6.5, -8.5, -16.5, material, 2.5, 2.5, 2);
+  addCylinder(containerGroup, -6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
+  addCylinder(containerGroup, -6.5, -8.5, -16.5, material, 2.5, 2.5, 2);
+ 
+  //scene.add(container);
 }
 
 function createCamera() {
@@ -107,15 +141,43 @@ function onKeyDown(e) {
     case 102: // f
       keyF = true;
       break;
-    case 81:
+    case 81: // Q
     case 113: // q
       keyQ = true;
       break;
-    case 65:
+    case 65: // A
     case 97: // a
       keyA = true;
       break;
-
+    case 87: // W
+    case 119: // w
+      keyW = true;
+      break;
+    case 83: // S
+    case 115: // s
+      keyS = true;
+      break;
+    case 69: // E
+    case 101: // e
+      keyE = true;
+      break;
+    case 68: // D
+    case 100: // d
+      keyD = true;
+      break;
+     // Arrow keys
+    case 38: // Arrow Up
+      keyArrowUp = true;
+      break;
+    case 40: // Arrow Down
+      keyArrowDown = true;
+      break;
+    case 37: // Arrow Left
+      keyArrowLeft = true;
+      break;
+    case 39: // Arrow Right
+      keyArrowRight = true;
+      break;
   }
 }
 
@@ -152,32 +214,108 @@ function onKeyUp(e) {
     case 82: // R
     case 114: // r
       keyR = false;
-    break;
+      break;
     case 70: // F
     case 102: // f
       keyF = false;
-    break;
-     case 81:
+      break;
+    case 81: // Q
     case 113: // q
       keyQ = false;
       break;
-    case 65:
+    case 65: // A
     case 97: // a
       keyA = false;
       break;
+    case 87: // W
+    case 119: // w
+      keyW = false;
+      break;
+    case 83: // S
+    case 115: // s
+      keyS = false;
+      break;
+    case 69: // E
+    case 101: // e
+      keyE = false;
+      break;
+    case 68: // D
+    case 100: // d
+      keyD = false;
+      break;
 
+     // Arrow keys
+    case 38: // Arrow Up
+      keyArrowUp = false;
+      break;
+    case 40: // Arrow Down
+      keyArrowDown = false;
+      break;
+    case 37: // Arrow Left
+      keyArrowLeft = false;
+      break;
+    case 39: // Arrow Right
+      keyArrowRight = false;
+      break;
   }
 }
 
+
 function processKeys(time) {
-  handleRoration(time, keyF, keyR, headGroup);
-  //handleRoration(time, keyQ, keyA, legGroup);
-  //handleRoration(time, keyW, keyS, feetGroup);
+  handleRotation(time, keyF, keyR, headGroup, 1, -Math.PI, 0);
+  handleRotation(time, keyS, keyW, legGroup, -1, 0, Math.PI/2);
+  handleRotation(time,keyA, keyQ,  feetGroup, -1, 0, Math.PI);
+  handleTranslationArms(time, keyD, keyE, armLeftGroup, armRightGroup);
+  handleContainerTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, containerGroup);
   
- 
 }
 
-function handleRoration(time, keyForward, keyBackward, group) {
+//need to handle all buttons at same time 
+function handleContainerTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
+  let translX = 0;
+  let translZ = 0;
+  if(keyLeft) {
+    translX++;
+  }
+  if(keyRight) {
+    translX--;
+  }
+  if(keyUp) {
+    translZ++;
+  }
+  if(keyDown) {
+    translZ--;
+  }
+  group.position.x += 5 * time * translX;
+  group.position.z += 5 * time * translZ;
+}
+
+function handleTranslationArms(time, keyForward, keyBackward, groupLeft, groupRight) {
+  let transl = 0;
+  if(keyForward) {
+    transl++;
+  }
+  if(keyBackward) {
+    transl--;
+  }
+
+  groupLeft.position.x -= 2 * time * transl;
+  groupRight.position.x += 2 * time * transl;
+
+  const minX = -5 ;
+  const maxX = 0 ;
+
+  if (groupRight.position.x < minX){
+     groupRight.position.x = minX;
+      groupLeft.position.x = minX * -1;
+  } 
+  if (groupRight.position.x > maxX){ 
+      groupRight.position.x = maxX;
+      groupLeft.position.x = maxX * -1;
+  }
+}
+
+function handleRotation(time, keyForward, keyBackward, group, invert, minAngle, maxAngle) {
   let rot = 0;
   if(keyForward) {
     rot++;
@@ -185,25 +323,21 @@ function handleRoration(time, keyForward, keyBackward, group) {
   if(keyBackward) {
     rot--;
   }
-  console.log( group.rotation.x);
-  if( group.rotation.x >= -Math.PI && group.rotation.x <= 0) {
-    group.rotation.x += Math.PI/2 * time * rot;
-  }
-  if (group.rotation.x < -Math.PI){
-    group.rotation.x = -Math.PI;  
-  }
-  if (group.rotation.x > 0){
-    group.rotation.x = 0;  
-  }
 
+  group.rotation.x += Math.PI/2 * time * rot * invert;
 
+  //const minAngle = invert > 0 ? -Math.PI : 0;
+  //const maxAngle = invert > 0 ? 0 : Math.PI/2;
+
+  if (group.rotation.x < minAngle) group.rotation.x = minAngle;
+  if (group.rotation.x > maxAngle) group.rotation.x = maxAngle;
 }
 
 function update(){
-  let time = clock.getDelta();
-    processKeys(time);
+  let delta = clock.getDelta();
+  processKeys(delta);
     //processAnimations(time);
-  }
+}
 
   //paa garantir q animacao ocorre a vel constante --> obj.position.x += vel * time;}
 
@@ -216,4 +350,3 @@ function update(){
 init();
 
 animate();
-
