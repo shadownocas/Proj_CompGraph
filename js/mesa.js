@@ -1,12 +1,12 @@
 import * as THREE from "three";
 
-let scene, renderer;
+let scene, renderer, materials = [];
 
 let camera_idx = 0, cameras, ortho_cameras, persp_camera;
 
 let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
 let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
- keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false;
+ keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false;
 let clock = new THREE.Clock();
 
 function addGroup(group, parent, x, y, z) { 
@@ -35,6 +35,7 @@ function createRobot(x, y, z) {
   robot = new THREE.Object3D();
 
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+  materials.push(material);
   //create the torso
   addBox(robot, 0, 0, 0, material, 15, 10, 7);
   //create top wheels
@@ -106,6 +107,7 @@ function createContainer(x, y, z) {
   addGroup(containerGroup, scene, x, y, z);
 
   const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
+  materials.push(material);
   addBox(containerGroup, 0, 0, 0, material, 11, 20, 50);
   addBox(containerGroup, 0, 0, 26.5, material, 11, 3, 3);
   addCylinder(containerGroup, 6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
@@ -174,6 +176,9 @@ function onKeyDown(e) {
     case 51: // 3
     case 52: // 4
       camera_idx = e.keyCode - 49;
+      break;
+    case 55: // 7
+      key7 = true;
       break;
     case 82: // R
     case 114: // r
@@ -302,6 +307,11 @@ function onKeyUp(e) {
   }
 }
 
+function handleKey7() {
+  if (!key7) return;
+  materials.forEach((value) => value.wireframe = !value.wireframe);
+  key7 = false;
+}
 
 function processKeys(time) {
   handleRotation(time, keyF, keyR, headGroup, 1, -Math.PI, 0);
@@ -309,7 +319,7 @@ function processKeys(time) {
   handleRotation(time,keyA, keyQ,  feetGroup, -1, 0, Math.PI);
   handleTranslationArms(time, keyD, keyE, armLeftGroup, armRightGroup);
   handleContainerTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, containerGroup);
-  
+  handleKey7();
 }
 
 //need to handle all buttons at same time 
@@ -366,7 +376,7 @@ function handleRotation(time, keyForward, keyBackward, group, invert, minAngle, 
     rot--;
   }
 
-  group.rotation.x += Math.PI/2 * time * rot * invert;
+  group.rotation.x += Math.PI/2 * time * rot * invert * Math.abs(maxAngle - minAngle) / 3;
 
   //const minAngle = invert > 0 ? -Math.PI : 0;
   //const maxAngle = invert > 0 ? 0 : Math.PI/2;
