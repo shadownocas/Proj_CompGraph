@@ -1,6 +1,8 @@
 import * as THREE from "three";
 
-let camera, scene, renderer;
+let scene, renderer;
+
+let camera_idx = 0, cameras, ortho_cameras, persp_camera;
 
 let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
 let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
@@ -114,25 +116,65 @@ function createContainer(x, y, z) {
   //scene.add(container);
 }
 
-function createCamera() {
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-  camera.position.x = 50;
-  camera.position.y = 50;
-  camera.position.z = 50;
+function createOrthoCamera({size, x, y, z, offset_h, offset_w}) {
+  x = x ?? 0, y = y ?? 0, z = z ?? 0, offset_h = offset_h ?? 0, offset_w = offset_w ?? 0;
+  let ratio = window.innerHeight / window.innerWidth;
+  let camera = new THREE.OrthographicCamera(- size / ratio + offset_w, size / ratio + offset_w, size + offset_h, - size + offset_h, 1, 1000);
+  camera.position.x = x ?? 0;
+  camera.position.y = y ?? 0;
+  camera.position.z = z ?? 0;
   camera.lookAt(scene.position);
+  camera.userData = {size, offset_h, offset_w};
+  return camera;
+}
+
+function createCameras() {
+  ortho_cameras = [
+    createOrthoCamera({size: 25, x: 50, offset_w: 25}),
+    createOrthoCamera({size: 25, z: 50}),
+    createOrthoCamera({size: 50, y: 50, offset_h: 25}),
+  ];
+
+  persp_camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+  persp_camera.position.x = 50;
+  persp_camera.position.z = 50;
+  persp_camera.position.y = 30;
+  persp_camera.lookAt(scene.position);
+
+  cameras = [...ortho_cameras, persp_camera];
+  resizeCameras();
+}
+
+function resizeCameras() {
+  if (!(window.innerHeight > 0 && window.innerWidth > 0)) {
+    return;
+  }
+
+  let ratio = window.innerHeight / window.innerWidth;
+  ortho_cameras.forEach((camera) => {
+    camera.left   = - camera.userData.size / ratio + camera.userData.offset_w;
+    camera.right  =   camera.userData.size / ratio + camera.userData.offset_w;
+    camera.updateProjectionMatrix();
+  });
+
+  persp_camera.aspect = 1 / ratio;
+  persp_camera.updateProjectionMatrix();
 }
 
 function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 
-  if (window.innerHeight > 0 && window.innerWidth > 0) {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-  }
+  resizeCameras();
 }
 
 function onKeyDown(e) {
   switch (e.keyCode) {
+    case 49: // 1
+    case 50: // 2
+    case 51: // 3
+    case 52: // 4
+      camera_idx = e.keyCode - 49;
+      break;
     case 82: // R
     case 114: // r
       keyR = true;
@@ -182,7 +224,7 @@ function onKeyDown(e) {
 }
 
 function render() {
-  renderer.render(scene, camera);
+  renderer.render(scene, cameras[camera_idx]);
 }
 
 function init() {
@@ -193,7 +235,7 @@ function init() {
   document.body.appendChild(renderer.domElement);
 
   createScene();
-  createCamera();
+  createCameras();
 
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);  
