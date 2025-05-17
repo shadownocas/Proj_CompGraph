@@ -322,7 +322,6 @@ function processKeys(time) {
   handleKey7();
 }
 
-//need to handle all buttons at same time 
 function handleContainerTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
   let translX = 0;
   let translZ = 0;
@@ -338,7 +337,12 @@ function handleContainerTranslation(time, keyUp, keyDown, keyLeft, keyRight, gro
   if(keyDown) {
     translZ--;
   }
-  group.position.x += 5 * time * translX;
+  if (translX != 0 && translZ != 0) {
+    /* Normalize vector */
+    translX /= Math.SQRT2;
+    translZ /= Math.SQRT2;
+  }
+  group.position.x += 5 * time * translX ;
   group.position.z += 5 * time * translZ;
 }
 
