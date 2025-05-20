@@ -13,7 +13,7 @@ let camera_idx = 0, cameras, ortho_cameras, persp_camera;
 
 let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
 let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
- keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false;
+ keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey7 = false;
 let clock = new THREE.Clock();
 
 /////////////////////
@@ -210,9 +210,10 @@ function init() {
 /////////////////////
 
 function handleKey7() {
-  if (!key7) return;
-  materials.forEach((value) => value.wireframe = !value.wireframe);
-  key7 = false;
+  if ((!prevKey7) && key7) {
+    materials.forEach((value) => value.wireframe = !value.wireframe);
+    prevKey7 = true;
+  }
 }
 
 function processKeys(time) {
@@ -374,6 +375,10 @@ function onKeyDown(e) {
 ///////////////////////
 function onKeyUp(e) {
   switch (e.keyCode) {
+    case 55: // 7
+      key7 = false;
+      prevKey7 = false;
+      break;
     case 82: // R
     case 114: // r
       keyR = false;
