@@ -85,59 +85,63 @@ function addCylinder(obj, x, y, z, material, radiust, radiusb, height, rotate = 
   obj.add(mesh);
 }
 
+
 function createRobot(x, y, z) {
   robot = new THREE.Object3D();
 
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-  materials.push(material);
+  materials.push(new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: true }));
+  materials.push(new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true }));
+  materials.push(new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
+  materials.push(new THREE.MeshBasicMaterial({ color: 0x808080, wireframe: true }));
+
   //create the torso
-  addBox(robot, 0, 0, 0, material, 15, 10, 7);
+  addBox(robot, 0, 0, 0, materials[0], 15, 10, 7);
   //create top wheels
-  addCylinder(robot, 6.5, -10.5, 0, material, 2.5, 2.5, 2);
-  addCylinder(robot, -6.5, -10.5, 0, material, 2.5, 2.5, 2);
+  addCylinder(robot, 6.5, -10.5, 0, materials[1], 2.5, 2.5, 2);
+  addCylinder(robot, -6.5, -10.5, 0, materials[1], 2.5, 2.5, 2);
   //create bumper and abdomen
-  addBox(robot, 0, -10.5, -2.5, material, 11, 3, 2);
-  addBox(robot, 0, -7, 0, material, 5, 4, 7);
+  addBox(robot, 0, -10.5, -2.5, materials[0], 11, 3, 2);
+  addBox(robot, 0, -7, 0, materials[0], 5, 4, 7);
 
   //create the arms
   armRightGroup = new THREE.Group();
   armLeftGroup = new THREE.Group();
   addGroup(armLeftGroup, robot, 0, 0, 0);
   addGroup(armRightGroup, robot, 0, 0, 0);
-  addBox(armRightGroup, 10, 0, -5, material, 5, 10, 3);
-  addBox(armLeftGroup, -10, 0, -5, material, 5, 10, 3);
-  addBox(armRightGroup, 10, -6.5, -1.5, material, 5, 3, 10);
-  addBox(armLeftGroup, -10, -6.5, -1.5, material, 5, 3, 10);
-  addBox(armRightGroup, 12, 3, -7, material, 1, 10, 1);
-  addBox(armLeftGroup, -12, 3, -7, material, 1, 10, 1); 
+  addBox(armRightGroup, 10, 0, -5, materials[0], 5, 10, 3);
+  addBox(armLeftGroup, -10, 0, -5, materials[0], 5, 10, 3);
+  addBox(armRightGroup, 10, -6.5, -1.5, materials[0], 5, 3, 10);
+  addBox(armLeftGroup, -10, -6.5, -1.5, materials[0], 5, 3, 10);
+  addBox(armRightGroup, 12, 3, -7, materials[3], 1, 10, 1);
+  addBox(armLeftGroup, -12, 3, -7, materials[3], 1, 10, 1); 
 
   //create the head
   headGroup = new THREE.Group();
   addGroup(headGroup, robot, 0, 5, -3.5);
-  addBox(headGroup, 0, 2, 2.5, material, 5, 4, 5);
-  addBox(headGroup, 1.5, 2.5, 5.5, material, 2, 1, 1);
-  addBox(headGroup, -1.5, 2.5, 5.5, material, 2, 1, 1);
-  addCylinder(headGroup, 1, 4, 2.5, material, 0, 0.5, 1, false);
-  addCylinder(headGroup, -1, 4, 2.5, material, 0, 0.5, 1, false);
+  addBox(headGroup, 0, 2, 2.5, materials[2], 5, 4, 5);
+  addBox(headGroup, 1.5, 2.5, 5.5, materials[1], 2, 1, 1);
+  addBox(headGroup, -1.5, 2.5, 5.5, materials[1], 2, 1, 1);
+  addCylinder(headGroup, 1, 4, 2.5, materials[2], 0, 0.5, 1, false);
+  addCylinder(headGroup, -1, 4, 2.5, materials[2], 0, 0.5, 1, false);
 
   //create the legs
   legGroup = new THREE.Group();
   addGroup(legGroup, robot, 0, -10.5, 0);
-  addCylinder(legGroup, 0, 0, 0, material, 1.5, 1.5, 11);
-  addBox(legGroup, 2, -3.5, 0, material, 3, 4, 3);
-  addBox(legGroup, -2, -3.5, 0, material, 3, 4, 3);
-  addBox(legGroup, 3, -14, -0.5, material, 5, 17, 4);
-  addBox(legGroup, -3, -14, -0.5, material, 5, 17, 4);
-  addCylinder(legGroup, 6.5, -9, 0, material, 2.5, 2.5, 2);
-  addCylinder(legGroup, -6.5, -9, 0, material, 2.5, 2.5, 2);
-  addCylinder(legGroup, 6.5, -19, 0, material, 2.5, 2.5, 2);
-  addCylinder(legGroup, -6.5, -19, 0, material, 2.5, 2.5, 2);
+  addCylinder(legGroup, 0, 0, 0, materials[1], 1.5, 1.5, 11);
+  addBox(legGroup, 2, -3.5, 0, materials[3], 3, 4, 3);
+  addBox(legGroup, -2, -3.5, 0, materials[3], 3, 4, 3);
+  addBox(legGroup, 3, -14, -0.5, materials[2], 5, 17, 4);
+  addBox(legGroup, -3, -14, -0.5, materials[2], 5, 17, 4);
+  addCylinder(legGroup, 6.5, -9, 0, materials[1], 2.5, 2.5, 2);
+  addCylinder(legGroup, -6.5, -9, 0, materials[1], 2.5, 2.5, 2);
+  addCylinder(legGroup, 6.5, -19, 0, materials[1], 2.5, 2.5, 2);
+  addCylinder(legGroup, -6.5, -19, 0, materials[1], 2.5, 2.5, 2);
   
   //create feet
   feetGroup = new THREE.Group();
   addGroup(feetGroup, legGroup, 0, -22.5, -2.5);
-  addBox(feetGroup, 3, -1.5, 3, material, 5, 3, 6);
-  addBox(feetGroup, -3, -1.5, 3, material, 5, 3, 6);
+  addBox(feetGroup, 3, -1.5, 3, materials[2], 5, 3, 6);
+  addBox(feetGroup, -3, -1.5, 3, materials[2], 5, 3, 6);
 
   scene.add(robot);
 
@@ -150,14 +154,12 @@ function createContainer(x, y, z) {
   containerGroup = new THREE.Group();
   addGroup(containerGroup, scene, x, y, z);
 
-  const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
-  materials.push(material);
-  addBox(containerGroup, 0, 0, 0, material, 11, 20, 50);
-  addBox(containerGroup, 0, 1.5, 26.5, material, 11, 3, 3);
-  addCylinder(containerGroup, 6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
-  addCylinder(containerGroup, 6.5, -8.5, -16.5, material, 2.5, 2.5, 2);
-  addCylinder(containerGroup, -6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
-  addCylinder(containerGroup, -6.5, -8.5, -16.5, material, 2.5, 2.5, 2);
+  addBox(containerGroup, 0, 0, 0, materials[3], 11, 20, 50);
+  addBox(containerGroup, 0, 1.5, 26.5, materials[3], 11, 3, 3);
+  addCylinder(containerGroup, 6.5, -8.5, -22.5, materials[1], 2.5, 2.5, 2);
+  addCylinder(containerGroup, 6.5, -8.5, -16.5, materials[1], 2.5, 2.5, 2);
+  addCylinder(containerGroup, -6.5, -8.5, -22.5, materials[1], 2.5, 2.5, 2);
+  addCylinder(containerGroup, -6.5, -8.5, -16.5, materials[1], 2.5, 2.5, 2);
 }
 
 //////////////////////
