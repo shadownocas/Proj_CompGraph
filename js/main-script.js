@@ -7,9 +7,9 @@ import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-let scene, renderer, materials = [];
+let scene, renderer, materials = {};
 
-let camera_idx = 0, cameras, ortho_cameras, persp_camera;
+let camera_idx = 3, cameras, ortho_cameras, persp_camera;
 
 let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
 let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
@@ -85,63 +85,67 @@ function addCylinder(obj, x, y, z, material, radiust, radiusb, height, rotate = 
   obj.add(mesh);
 }
 
+function addWheel(parent, x, y, z) {
+  addCylinder(parent, x, y, z, materials.black, 2.5, 2.5, 2);
+}
 
 function createRobot(x, y, z) {
   robot = new THREE.Object3D();
 
-  materials.push(new THREE.MeshBasicMaterial({ color: 0xFF0000, wireframe: true }));
-  materials.push(new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true }));
-  materials.push(new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true }));
-  materials.push(new THREE.MeshBasicMaterial({ color: 0x808080, wireframe: true }));
+  materials.red = new THREE.MeshBasicMaterial({ color: 0xD92649 });
+  materials.black = new THREE.MeshBasicMaterial({ color: 0x313536 });
+  materials.blue = new THREE.MeshBasicMaterial({ color: 0x2649d9 });
+  materials.grey = new THREE.MeshBasicMaterial({ color: 0x808080 });
+  materials.yellow = new THREE.MeshBasicMaterial({ color: 0xD9B626 });
 
   //create the torso
-  addBox(robot, 0, 0, 0, materials[0], 15, 10, 7);
+  addBox(robot, 0, 0, 0, materials.red, 15, 10, 7);
   //create top wheels
-  addCylinder(robot, 6.5, -10.5, 0, materials[1], 2.5, 2.5, 2);
-  addCylinder(robot, -6.5, -10.5, 0, materials[1], 2.5, 2.5, 2);
+  addWheel(robot, 6.5, -10.5, 0);
+  addWheel(robot, -6.5, -10.5, 0);
   //create bumper and abdomen
-  addBox(robot, 0, -10.5, -2.5, materials[0], 11, 3, 2);
-  addBox(robot, 0, -7, 0, materials[0], 5, 4, 7);
+  addBox(robot, 0, -10.5, -2.5, materials.red, 11, 3, 2);
+  addBox(robot, 0, -7, 0, materials.red, 5, 4, 7);
 
   //create the arms
   armRightGroup = new THREE.Group();
   armLeftGroup = new THREE.Group();
   addGroup(armLeftGroup, robot, 0, 0, 0);
   addGroup(armRightGroup, robot, 0, 0, 0);
-  addBox(armRightGroup, 10, 0, -5, materials[0], 5, 10, 3);
-  addBox(armLeftGroup, -10, 0, -5, materials[0], 5, 10, 3);
-  addBox(armRightGroup, 10, -6.5, -1.5, materials[0], 5, 3, 10);
-  addBox(armLeftGroup, -10, -6.5, -1.5, materials[0], 5, 3, 10);
-  addBox(armRightGroup, 12, 3, -7, materials[3], 1, 10, 1);
-  addBox(armLeftGroup, -12, 3, -7, materials[3], 1, 10, 1); 
+  addBox(armRightGroup, 10, 0, -5, materials.yellow, 5, 10, 3);
+  addBox(armLeftGroup, -10, 0, -5, materials.yellow, 5, 10, 3);
+  addBox(armRightGroup, 10, -6.5, -1.5, materials.yellow, 5, 3, 10);
+  addBox(armLeftGroup, -10, -6.5, -1.5, materials.yellow, 5, 3, 10);
+  addBox(armRightGroup, 12, 3, -7, materials.grey, 1, 10, 1);
+  addBox(armLeftGroup, -12, 3, -7, materials.grey, 1, 10, 1); 
 
   //create the head
   headGroup = new THREE.Group();
   addGroup(headGroup, robot, 0, 5, -3.5);
-  addBox(headGroup, 0, 2, 2.5, materials[2], 5, 4, 5);
-  addBox(headGroup, 1.5, 2.5, 5.5, materials[1], 2, 1, 1);
-  addBox(headGroup, -1.5, 2.5, 5.5, materials[1], 2, 1, 1);
-  addCylinder(headGroup, 1, 4, 2.5, materials[2], 0, 0.5, 1, false);
-  addCylinder(headGroup, -1, 4, 2.5, materials[2], 0, 0.5, 1, false);
+  addBox(headGroup, 0, 2, 2.5, materials.blue, 5, 4, 5);
+  addBox(headGroup, 1.5, 2.5, 5.5, materials.black, 2, 1, 1);
+  addBox(headGroup, -1.5, 2.5, 5.5, materials.black, 2, 1, 1);
+  addCylinder(headGroup, 1, 4, 2.5, materials.black, 0, 0.5, 2, false);
+  addCylinder(headGroup, -1, 4, 2.5, materials.black, 0, 0.5, 2, false);
 
   //create the legs
   legGroup = new THREE.Group();
   addGroup(legGroup, robot, 0, -10.5, 0);
-  addCylinder(legGroup, 0, 0, 0, materials[1], 1.5, 1.5, 11);
-  addBox(legGroup, 2, -3.5, 0, materials[3], 3, 4, 3);
-  addBox(legGroup, -2, -3.5, 0, materials[3], 3, 4, 3);
-  addBox(legGroup, 3, -14, -0.5, materials[2], 5, 17, 4);
-  addBox(legGroup, -3, -14, -0.5, materials[2], 5, 17, 4);
-  addCylinder(legGroup, 6.5, -9, 0, materials[1], 2.5, 2.5, 2);
-  addCylinder(legGroup, -6.5, -9, 0, materials[1], 2.5, 2.5, 2);
-  addCylinder(legGroup, 6.5, -19, 0, materials[1], 2.5, 2.5, 2);
-  addCylinder(legGroup, -6.5, -19, 0, materials[1], 2.5, 2.5, 2);
+  addCylinder(legGroup, 0, 0, 0, materials.grey, 1.5, 1.5, 11);
+  addBox(legGroup, 2, -3.5, 0, materials.grey, 3, 4, 3);
+  addBox(legGroup, -2, -3.5, 0, materials.grey, 3, 4, 3);
+  addBox(legGroup, 3, -14, -0.5, materials.blue, 5, 17, 4);
+  addBox(legGroup, -3, -14, -0.5, materials.blue, 5, 17, 4);
+  addWheel(legGroup, 6.5, -9, 0);
+  addWheel(legGroup, -6.5, -9, 0);
+  addWheel(legGroup, 6.5, -19, 0);
+  addWheel(legGroup, -6.5, -19, 0);
   
   //create feet
   feetGroup = new THREE.Group();
   addGroup(feetGroup, legGroup, 0, -22.5, -2.5);
-  addBox(feetGroup, 3, -1.5, 3, materials[2], 5, 3, 6);
-  addBox(feetGroup, -3, -1.5, 3, materials[2], 5, 3, 6);
+  addBox(feetGroup, 3, -1.5, 3, materials.grey, 5, 3, 6);
+  addBox(feetGroup, -3, -1.5, 3, materials.grey, 5, 3, 6);
 
   scene.add(robot);
 
@@ -154,12 +158,12 @@ function createContainer(x, y, z) {
   containerGroup = new THREE.Group();
   addGroup(containerGroup, scene, x, y, z);
 
-  addBox(containerGroup, 0, 0, 0, materials[3], 11, 20, 50);
-  addBox(containerGroup, 0, 1.5, 26.5, materials[3], 11, 3, 3);
-  addCylinder(containerGroup, 6.5, -8.5, -22.5, materials[1], 2.5, 2.5, 2);
-  addCylinder(containerGroup, 6.5, -8.5, -16.5, materials[1], 2.5, 2.5, 2);
-  addCylinder(containerGroup, -6.5, -8.5, -22.5, materials[1], 2.5, 2.5, 2);
-  addCylinder(containerGroup, -6.5, -8.5, -16.5, materials[1], 2.5, 2.5, 2);
+  addBox(containerGroup, 0, 0, 0, materials.red, 11, 20, 50);
+  addBox(containerGroup, 0, 1.5, 26.5, materials.red, 11, 3, 3);
+  addWheel(containerGroup, 6.5, -8.5, -22.5);
+  addWheel(containerGroup, 6.5, -8.5, -16.5);
+  addWheel(containerGroup, -6.5, -8.5, -22.5);
+  addWheel(containerGroup, -6.5, -8.5, -16.5);
 }
 
 //////////////////////
@@ -211,7 +215,7 @@ function init() {
 
 function handleKey7() {
   if ((!prevKey7) && key7) {
-    materials.forEach((value) => value.wireframe = !value.wireframe);
+    Object.values(materials).forEach((value) => value.wireframe = !value.wireframe);
     prevKey7 = true;
   }
 }
