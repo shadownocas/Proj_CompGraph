@@ -323,27 +323,9 @@ function processKeys(time) {
 }
 
 function handleContainerTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
-  let translX = 0;
-  let translZ = 0;
-  if(keyLeft) {
-    translX++;
-  }
-  if(keyRight) {
-    translX--;
-  }
-  if(keyUp) {
-    translZ++;
-  }
-  if(keyDown) {
-    translZ--;
-  }
-  if (translX != 0 && translZ != 0) {
-    /* Normalize vector */
-    translX /= Math.SQRT2;
-    translZ /= Math.SQRT2;
-  }
-  group.position.x += 5 * time * translX ;
-  group.position.z += 5 * time * translZ;
+  let translX = keyLeft - keyRight;
+  let translZ = keyUp - keyDown;
+  group.position.add(new THREE.Vector3(translX, 0, translZ).normalize().multiplyScalar(5 * time));
 }
 
 function handleTranslationArms(time, keyForward, keyBackward, groupLeft, groupRight) {
