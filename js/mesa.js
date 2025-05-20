@@ -98,7 +98,7 @@ function createScene() {
   scene.add(new THREE.AxesHelper(10));
 
   createRobot(0, 8, 0);
-  createContainer(0 , 8 , -51.5)
+  createContainer(0 , 6, -51.5)
 
 }
 
@@ -109,7 +109,7 @@ function createContainer(x, y, z) {
   const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, wireframe: true });
   materials.push(material);
   addBox(containerGroup, 0, 0, 0, material, 11, 20, 50);
-  addBox(containerGroup, 0, 0, 26.5, material, 11, 3, 3);
+  addBox(containerGroup, 0, 1.5, 26.5, material, 11, 3, 3);
   addCylinder(containerGroup, 6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
   addCylinder(containerGroup, 6.5, -8.5, -16.5, material, 2.5, 2.5, 2);
   addCylinder(containerGroup, -6.5, -8.5, -22.5, material, 2.5, 2.5, 2);
