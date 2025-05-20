@@ -12,8 +12,17 @@ let scene, renderer, materials = {};
 let camera_idx = 3, cameras, ortho_cameras, persp_camera;
 
 let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
+
 let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
- keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey7 = false;
+
+keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey7 = false;
+
+let truck_mode = 0, detect_colision = false, colision= false, TRUCK = 4;
+
+let MIN_X = 0, MIN_Y = 1, MIN_Z = 2, MAX_X = 3, MAX_Y = 4, MAX_Z = 5;
+
+let robot_hitbox = [7.5, 16, 3.5, -7.5, -5, -22.5], container_base = [7.5, 10, 28, -7.5, -11, -25], container_hitbox = [];
+
 let clock = new THREE.Clock();
 
 /////////////////////
@@ -25,10 +34,8 @@ function createScene() {
   scene.add(new THREE.AxesHelper(10));
 
   createRobot(0, 8, 0);
-  createContainer(0 , 6, -51.5)
-
+ createContainer(0 , 6, -51.5)
 }
-
 //////////////////////
 /* CREATE CAMERA(S) */
 //////////////////////
@@ -169,7 +176,26 @@ function createContainer(x, y, z) {
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions() {}
+function checkCollisions() {
+  if (truck_mode == TRUCK){
+    container_hitbox[MIN_X] = container_base[MIN_X] + containerGroup.position.x;
+    container_hitbox[MIN_Y] = container_base[MIN_Y] + containerGroup.position.y;
+    container_hitbox[MIN_Z] = container_base[MIN_Z] + containerGroup.position.z;
+    container_hitbox[MAX_X] = container_base[MAX_X] + containerGroup.position.x;
+    container_hitbox[MAX_Y] = container_base[MAX_Y] + containerGroup.position.y;
+    container_hitbox[MAX_Z] = container_base[MAX_Z] + containerGroup.position.z;
+
+    if (container_hitbox[MAX_X] <=  robot_hitbox[MIN_X] &&
+        container_hitbox[MIN_X] >=  robot_hitbox[MAX_X] &&
+        container_hitbox[MAX_Y] <=  robot_hitbox[MIN_Y] &&
+        container_hitbox[MIN_Y] >=  robot_hitbox[MAX_Y] &&
+        container_hitbox[MAX_Z] <=  robot_hitbox[MIN_Z] &&
+        container_hitbox[MIN_Z] >=  robot_hitbox[MAX_Z] 
+      ){
+      colision = true;
+    }
+  }
+}
 
 ///////////////////////
 /* HANDLE COLLISIONS */
@@ -182,6 +208,8 @@ function handleCollisions() {}
 function update() {
   let delta = clock.getDelta();
   processKeys(delta);
+  checkCollisions();
+  truck_mode = 0;
 }
 
 /////////////
@@ -250,11 +278,12 @@ function handleTranslationArms(time, keyForward, keyBackward, groupLeft, groupRi
   const minX = -5 ;
   const maxX = 0 ;
 
-  if (groupRight.position.x < minX){
+  if (groupRight.position.x <= minX){
      groupRight.position.x = minX;
-      groupLeft.position.x = minX * -1;
+     groupLeft.position.x = minX * -1;
+     truck_mode++;
   } 
-  if (groupRight.position.x > maxX){ 
+  if (groupRight.position.x >= maxX){ 
       groupRight.position.x = maxX;
       groupLeft.position.x = maxX * -1;
   }
@@ -271,11 +300,15 @@ function handleRotation(time, keyForward, keyBackward, group, invert, minAngle, 
 
   group.rotation.x += Math.PI/2 * time * rot * invert * Math.abs(maxAngle - minAngle) / 3;
 
-  //const minAngle = invert > 0 ? -Math.PI : 0;
-  //const maxAngle = invert > 0 ? 0 : Math.PI/2;
+  if (group.rotation.x <= minAngle) {
+    group.rotation.x = minAngle
+    if (group == headGroup) truck_mode++;
+  };
 
-  if (group.rotation.x < minAngle) group.rotation.x = minAngle;
-  if (group.rotation.x > maxAngle) group.rotation.x = maxAngle;
+  if (group.rotation.x >= maxAngle){
+    group.rotation.x = maxAngle;
+    if (group != headGroup) truck_mode++;
+  }
 }
 
 function animate() {
