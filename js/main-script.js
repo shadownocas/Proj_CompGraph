@@ -13,17 +13,17 @@ let camera_idx = 3, cameras, ortho_cameras, persp_camera;
 
 let robot, armLeftGroup, armRightGroup, headGroup, legGroup, feetGroup, containerGroup;
 
-let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false, keyY = false,
+let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false,
 
 keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey7 = false;
 
-let truck_mode = 0, detect_colision = false, colision= false, TRUCK = 4, colision_prev = false, isAnimating = false;
+let truck_mode = 0, colision= false, TRUCK = 4, colision_prev = false, isAnimating = false;
 
 let MIN_X = 0, MIN_Y = 1, MIN_Z = 2, MAX_X = 3, MAX_Y = 4, MAX_Z = 5;
 
 let robot_hitbox = [7.5, 16, 3.5, -7.5, -5, -22.5], container_base = [7.5, 10, 28, -7.5, -11, -25], container_hitbox = [];
 
-let targetPos = new THREE.Vector3(0 , 6, -48.5); 
+let targetPos = new THREE.Vector3(0 , 6, -47.5); 
 
 let clock = new THREE.Clock();
 
@@ -178,7 +178,7 @@ function createContainer(x, y, z) {
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
-function checkCollisions(delta) {
+function checkCollisions() {
   if (truck_mode == TRUCK){
     container_hitbox[MIN_X] = container_base[MIN_X] + containerGroup.position.x;
     container_hitbox[MIN_Y] = container_base[MIN_Y] + containerGroup.position.y;
@@ -194,19 +194,17 @@ function checkCollisions(delta) {
         container_hitbox[MAX_Z] <=  robot_hitbox[MIN_Z] &&
         container_hitbox[MIN_Z] >=  robot_hitbox[MAX_Z] 
       ){
-      console.log("colisoa")
-      colision = true;
-      if(!colision_prev){
-        handleCollisions(delta);
-        console.log('handling collision')
-        colision_prev = true
+      if(!colision){
+        handleCollisions();
+        colision = true
       } 
     }
     else{
-      colision_prev = false;
-      isAnimating = false;
-      console.log('handling collision FALSEEE')
+      colision = false;
     }
+  }
+  else{
+    colision = false;
   }
 
 }
@@ -214,12 +212,8 @@ function checkCollisions(delta) {
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
-function handleCollisions(time) {
+function handleCollisions() {
   isAnimating = true;
-  keyArrowDown = false;
-  keyArrowLeft = false;
-  keyArrowRight  = false;
-  keyArrowUp  = false;
 }
 
 function animateCollision(delta) {
@@ -227,23 +221,12 @@ function animateCollision(delta) {
   const direction = new THREE.Vector3().subVectors(targetPos, currentPos);
 
   const distanceToTarget = direction.length();
-  console.log('distance to target: ',distanceToTarget)
 
-  if (distanceToTarget < 0.01) { //ja esta perto suficiente
+  direction.normalize(); 
+  const moveDistance =  10 * delta;
+  if (moveDistance >= distanceToTarget) {
     containerGroup.position.copy(targetPos);
     isAnimating = false;
-    console.log('entrouu')
-    return;
-  }
-
-
-  direction.normalize(); //so para ter direcao, sem tamanho
-  const moveDistance =  Math.PI/2 * delta;
-console.log('the moveee distance ', moveDistance)
-  if (moveDistance >= distanceToTarget) {// snap se o  ele somar ao veotr excede distancetotrget
-    containerGroup.position.copy(targetPos);
-    isAnimating = false;
-    console.log('ahhhhh')
   } else {
     containerGroup.position.addScaledVector(direction, moveDistance);
   }
@@ -256,7 +239,7 @@ console.log('the moveee distance ', moveDistance)
 function update() {
   let delta = clock.getDelta();
   processKeys(delta);
-  checkCollisions(delta);
+  checkCollisions();
   if (isAnimating) {
     animateCollision(delta);
   }
@@ -300,9 +283,10 @@ function handleKey7() {
 }
 
 function processKeys(time) {
+  if(isAnimating) return;
   handleRotation(time, keyF, keyR, headGroup, 1, -Math.PI, 0);
   handleRotation(time, keyS, keyW, legGroup, -1, 0, Math.PI/2);
-  handleRotation(time,keyA, keyY,  feetGroup, -1, 0, Math.PI);
+  handleRotation(time,keyA, keyQ,  feetGroup, -1, 0, Math.PI);
   handleTranslationArms(time, keyD, keyE, armLeftGroup, armRightGroup);
   handleContainerTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, containerGroup);
   handleKey7();
@@ -400,7 +384,6 @@ function onResize() {
 /* KEY DOWN CALLBACK */
 ///////////////////////
 function onKeyDown(e) {
-  if(isAnimating) return;
   switch (e.keyCode) {
     case 49: // 1
     case 50: // 2
@@ -443,11 +426,6 @@ function onKeyDown(e) {
     case 100: // d
       keyD = true;
       break;
-    //AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-    case 89: // Y
-    case 121: // y
-      keyY = true;
-      break;
      // Arrow keys
     case 38: // Arrow Up
       keyArrowUp = true;
@@ -468,7 +446,6 @@ function onKeyDown(e) {
 /* KEY UP CALLBACK */
 ///////////////////////
 function onKeyUp(e) {
-  if(isAnimating) return;
   switch (e.keyCode) {
     case 55: // 7
       key7 = false;
@@ -505,11 +482,6 @@ function onKeyUp(e) {
     case 68: // D
     case 100: // d
       keyD = false;
-      break;
-    //AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-    case 89: // Y
-    case 121: // y
-      keyY = true;
       break;
 
      // Arrow keys
