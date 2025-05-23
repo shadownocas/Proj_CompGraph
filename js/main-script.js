@@ -13,7 +13,7 @@ let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS =
 
 keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey7 = false;
 
-let truck_mode = 0, colision= false, TRUCK = 4, colision_prev = false, isAnimating = false;
+let truck_mode = 0, colision= false, TRUCK = 4, isAnimating = false;
 
 let MIN_X = 0, MIN_Y = 1, MIN_Z = 2, MAX_X = 3, MAX_Y = 4, MAX_Z = 5;
 
@@ -182,7 +182,7 @@ function checkCollisions() {
     container_hitbox[MAX_Z] = container_base[MAX_Z] + containerGroup.position.z;
 
     if (container_hitbox[MAX_X] <=  robot_hitbox[MIN_X] &&
-        container_hitbox[MIN_X] >=  robot_hitbox[MAX_X] &&
+        container_hitbox[MIN_X] >=  robot_hitbox[MAX_X] && 
         container_hitbox[MAX_Y] <=  robot_hitbox[MIN_Y] &&
         container_hitbox[MIN_Y] >=  robot_hitbox[MAX_Y] &&
         container_hitbox[MAX_Z] <=  robot_hitbox[MIN_Z] &&
