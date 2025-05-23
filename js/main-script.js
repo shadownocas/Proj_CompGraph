@@ -128,8 +128,8 @@ function createRobot(x, y, z) {
   addBox(headGroup, 0, 2, 2.5, materials.blue, 5, 4, 5);
   addBox(headGroup, 1.5, 2.5, 5.5, materials.black, 2, 1, 1);
   addBox(headGroup, -1.5, 2.5, 5.5, materials.black, 2, 1, 1);
-  addCylinder(headGroup, 1, 4, 2.5, materials.black, 0, 0.5, 2, false);
-  addCylinder(headGroup, -1, 4, 2.5, materials.black, 0, 0.5, 2, false);
+  addCylinder(headGroup, 1, 5, 2.5, materials.black, 0, 0.5, 2, false);
+  addCylinder(headGroup, -1, 5, 2.5, materials.black, 0, 0.5, 2, false);
 
   //create the legs
   legGroup = new THREE.Group();
@@ -182,7 +182,7 @@ function checkCollisions() {
     container_hitbox[MAX_Z] = container_base[MAX_Z] + containerGroup.position.z;
 
     if (container_hitbox[MAX_X] <=  robot_hitbox[MIN_X] &&
-        container_hitbox[MIN_X] >=  robot_hitbox[MAX_X] && 
+        container_hitbox[MIN_X] >=  robot_hitbox[MAX_X] &&
         container_hitbox[MAX_Y] <=  robot_hitbox[MIN_Y] &&
         container_hitbox[MIN_Y] >=  robot_hitbox[MAX_Y] &&
         container_hitbox[MAX_Z] <=  robot_hitbox[MIN_Z] &&
@@ -278,12 +278,13 @@ function handleKey7() {
 }
 
 function processKeys(time) {
-  if(isAnimating) return;
-  handleRotation(time, keyF, keyR, headGroup, 1, -Math.PI, 0);
-  handleRotation(time, keyS, keyW, legGroup, -1, 0, Math.PI/2);
-  handleRotation(time,keyA, keyQ,  feetGroup, -1, 0, Math.PI);
-  handleTranslationArms(time, keyD, keyE, armLeftGroup, armRightGroup);
-  handleContainerTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, containerGroup);
+  if(!isAnimating){ 
+    handleRotation(time, keyF, keyR, headGroup, 1, -Math.PI, 0);
+    handleRotation(time, keyS, keyW, legGroup, -1, 0, Math.PI/2);
+    handleRotation(time,keyA, keyQ,  feetGroup, -1, 0, Math.PI);
+    handleTranslationArms(time, keyD, keyE, armLeftGroup, armRightGroup);
+    handleContainerTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, containerGroup);
+  }
   handleKey7();
 }
 
