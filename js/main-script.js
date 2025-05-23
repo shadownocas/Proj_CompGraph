@@ -1,8 +1,4 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { VRButton } from "three/addons/webxr/VRButton.js";
-import * as Stats from "three/addons/libs/stats.module.js";
-import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -33,10 +29,8 @@ let clock = new THREE.Clock();
 function createScene() {
   scene = new THREE.Scene(); 
   scene.background = new THREE.Color(0xffffff);
-  scene.add(new THREE.AxesHelper(10));
-
   createRobot(0, 8, 0);
- createContainer(0 , 6, -51.5)
+  createContainer(0 , 6, -51.5)
 }
 //////////////////////
 /* CREATE CAMERA(S) */
@@ -113,7 +107,7 @@ function createRobot(x, y, z) {
   addWheel(robot, 6.5, -10.5, 0);
   addWheel(robot, -6.5, -10.5, 0);
   //create bumper and abdomen
-  addBox(robot, 0, -10.5, -2.5, materials.red, 11, 3, 2);
+  addBox(robot, 0, -10.5, 2.5, materials.red, 11, 3, 2);
   addBox(robot, 0, -7, 0, materials.red, 5, 4, 7);
 
   //create the arms
@@ -168,7 +162,7 @@ function createContainer(x, y, z) {
   addGroup(containerGroup, scene, x, y, z);
 
   addBox(containerGroup, 0, 0, 0, materials.red, 11, 20, 50);
-  addBox(containerGroup, 0, 1.5, 26.5, materials.red, 11, 3, 3);
+  addBox(containerGroup, 0, 1.5, 26.5, materials.black, 11, 3, 3);
   addWheel(containerGroup, 6.5, -8.5, -22.5);
   addWheel(containerGroup, 6.5, -8.5, -16.5);
   addWheel(containerGroup, -6.5, -8.5, -22.5);
@@ -217,13 +211,14 @@ function handleCollisions() {
 }
 
 function animateCollision(delta) {
+  const speed = 10;
   const currentPos = containerGroup.position;
   const direction = new THREE.Vector3().subVectors(targetPos, currentPos);
 
   const distanceToTarget = direction.length();
 
   direction.normalize(); 
-  const moveDistance =  10 * delta;
+  const moveDistance = speed * delta;
   if (moveDistance >= distanceToTarget) {
     containerGroup.position.copy(targetPos);
     isAnimating = false;
@@ -300,6 +295,7 @@ function handleContainerTranslation(time, keyUp, keyDown, keyLeft, keyRight, gro
 
 function handleTranslationArms(time, keyForward, keyBackward, groupLeft, groupRight) {
   let transl = 0;
+  const speed = 2;
   if(keyForward) {
     transl++;
   }
@@ -307,8 +303,8 @@ function handleTranslationArms(time, keyForward, keyBackward, groupLeft, groupRi
     transl--;
   }
 
-  groupLeft.position.x -= 2 * time * transl;
-  groupRight.position.x += 2 * time * transl;
+  groupLeft.position.x -= speed * time * transl;
+  groupRight.position.x += speed * time * transl;
 
   const minX = -5 ;
   const maxX = 0 ;
@@ -326,6 +322,7 @@ function handleTranslationArms(time, keyForward, keyBackward, groupLeft, groupRi
 
 function handleRotation(time, keyForward, keyBackward, group, invert, minAngle, maxAngle) {
   let rot = 0;
+  const speed = Math.PI/2;
   if(keyForward) {
     rot++;
   }
@@ -333,7 +330,7 @@ function handleRotation(time, keyForward, keyBackward, group, invert, minAngle, 
     rot--;
   }
 
-  group.rotation.x += Math.PI/2 * time * rot * invert * Math.abs(maxAngle - minAngle) / 3;
+  group.rotation.x += speed * time * rot * invert * Math.abs(maxAngle - minAngle) / 3;
 
   if (group.rotation.x <= minAngle) {
     group.rotation.x = minAngle
@@ -483,7 +480,6 @@ function onKeyUp(e) {
     case 100: // d
       keyD = false;
       break;
-
      // Arrow keys
     case 38: // Arrow Up
       keyArrowUp = false;
