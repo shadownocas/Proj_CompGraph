@@ -7,105 +7,86 @@ import * as Stats from "three/addons/libs/stats.module.js";
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-let scene, renderer, allMeshes = {}, controls, selectedMaterial = 0, materials = {}, helper;
+let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, materials = {}, helper, mats = [];
 
-//let persp_camera;
-let camera_idx = 3, cameras, ortho_cameras, persp_camera, moonLight, treeGroup, ovniGroup , spotLight;
+let camera_idx = 3, persp_camera, moonLight, treeGroup, ovniGroup , spotLight, ovniLights = [];
 
-let keyR = false, keyF = false, keyQ = false, keyA = false, keyW = false, keyS = false, keyE = false, keyD = false, prevKey2 = false, key2 = false,
-prevKeyD = false,
-keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey1 = false, key1 = false, skyMat;
+let keyR = false, keyQ = false, keyD = false, prevKey2 = false, key2 = false, prevKeyR = false, 
+prevKeyD = false, keyP = false, keyS = false, prevKeyS = false, prevKeyP = false, prevKeyQ = false, prevKeyW = false, keyW = false, prevKeyE = false, keyE = false,
+keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey1 = false, key1 = false, prevKey7 = false;
 let flowerColors = ["#ffffff", "#ffff00", "#e066ff", "#00a1ff"];
-let groundMesh;
-let clock = new THREE.Clock();
+let groundMesh, prevIlumination = 0;
 
+let clock = new THREE.Clock();
+const SPOTLIGHT_INTENSITY = 10000;
+const PONTUALLIGHT_INTENSITY = 1000;
 const BASE = 10; // base unit for scaling
 
-const MATERIAL_TYPES = [
-    (color) => new THREE.MeshPhongMaterial({ color }),
-    (color) => new THREE.MeshToonMaterial({ color }),
-    (color) => new THREE.MeshLambertMaterial({ color }),
-    (color) => new THREE.MeshBasicMaterial({ color }),
-];
+function createMaterials(color) {
+  mats.push( [ new THREE.MeshPhongMaterial({ color }), new THREE.MeshToonMaterial({ color }), 
+    new THREE.MeshLambertMaterial({ color }), new THREE.MeshBasicMaterial({ color }) ]);
 
-function createCylinder(name, obj, x, y, z, material, radiust, radiusb, height, rotate = null) {
+}
+
+function createCylinder( obj, x, y, z,color, radiust, radiusb, height, rotate = null) {
+  createMaterials(color);
   const geometry = new THREE.CylinderGeometry(radiust, radiusb, height);
+  let material = mats[mats.length-1][selectedMaterial];
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   if(rotate) mesh.rotation.z = Math.PI / 4 * rotate //rodar no eixo z
   obj.add(mesh);
-  allMeshes[name] = mesh;
+    allMeshes.push(mesh);
+
 }
 
-function createSphere(name, radius, color, x, y, z) {
+function createSphere( obj, radius, color, x, y, z) {
+  createMaterials(color);
   let geometry = new THREE.SphereGeometry(radius, 32, 32);
-  let material = new THREE.MeshBasicMaterial({ color: color });
+  let material = mats[mats.length-1][selectedMaterial];
   let sphere = new THREE.Mesh(geometry, material);
   sphere.position.set(x, y, z);
- 
-  scene.add(sphere);
+  obj.add(sphere);
+  allMeshes.push(sphere);
 
-  allMeshes[name] = sphere;
   return sphere;
 }
 
-function createElipsoide(name, obj, x, y, z, material, radiusX, radiusY, radiusZ) {
+function createElipsoide(obj, x, y, z, color, radiusX, radiusY, radiusZ) {
+  createMaterials(color);
   const geometry = new THREE.SphereGeometry(1, 32, 32);
+  let material = mats[mats.length-1][selectedMaterial];
   geometry.scale(radiusX, radiusY, radiusZ);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   obj.add(mesh);
-  allMeshes[name] = mesh;
+  allMeshes.push(mesh);
   return mesh;
 }
 
-function createCapsule(name, obj, x, y, z, material, radius, capHeight) {
+function createCapsule(obj, x, y, z, color, radius, capHeight) {
+  createMaterials(color);
+  let material = mats[mats.length-1][selectedMaterial];
   // Calculate thetaLength to simulate a cap. Full sphere height = 2 * radius
   const thetaLength = Math.acos((radius - capHeight) / radius);
-
-  const geometry = new THREE.SphereGeometry(
-    radius,       // radius
-    32,           // widthSegments
-    32,           // heightSegments
-    0,            // phiStart
-    Math.PI * 2,  // phiLength (full circle)
-    0,            // thetaStart (from top pole)
-    thetaLength   // thetaLength (downward from top)
-  );
-
+  const geometry = new THREE.SphereGeometry(radius, 32, 32, 0, Math.PI * 2, 0, thetaLength );
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
-  allMeshes[name] = mesh;
+  allMeshes.push(mesh);
   obj.add(mesh);
 }
 
-function createOrthoCamera({size, x, y, z, offset_h, offset_w}) {
-  x = x ?? 0, y = y ?? 0, z = z ?? 0, offset_h = offset_h ?? 0, offset_w = offset_w ?? 0;
-  let ratio = window.innerHeight / window.innerWidth;
-  let camera = new THREE.OrthographicCamera(- size / ratio + offset_w, size / ratio + offset_w, size + offset_h, - size + offset_h, 1, 1000);
-  camera.position.x = x ?? 0;
-  camera.position.y = y ?? 0;
-  camera.position.z = z ?? 0;
-  camera.lookAt(scene.position);
-  camera.userData = {size, offset_h, offset_w};
-  return camera;
-}
-
-function createCameras() {
-  ortho_cameras = [
-    createOrthoCamera({size: 25, x: 50, offset_w: 25}),
-    createOrthoCamera({size: 25, z: 50}),
-    createOrthoCamera({size: 0, y: 1000, offset_h: 0}),
-  ];
-
+function createCamera() {
+ 
   persp_camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
   persp_camera.position.x = 50;
   persp_camera.position.z = 50;
-  persp_camera.position.y = 30;
+  persp_camera.position.y = 500;
   persp_camera.lookAt(scene.position);
 
-  cameras = [...ortho_cameras, persp_camera];
-  resizeCameras();
+
+
+  resizeCamera();
 }
 
 function addGroup(group, parent, x, y, z) { 
@@ -117,38 +98,55 @@ function createTree(x , z, base, id) { //with id pq assim n dava para fazer diff
   x = x ?? 0, z = z ?? 0;
   treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
   addGroup(treeGroup, scene, x, 20, z);
-  createCylinder(`trunk_${id}`, treeGroup, 0, 0, 0, new THREE.MeshBasicMaterial({ color: 0x8B4513 }), 2/6 * BASE, 2/6 * base, 4.5 * base); // trunk
-  createCylinder(`branch2_${id}`, treeGroup, 2/4 * base, 0.7 * base, 0, new THREE.MeshBasicMaterial({ color: 0x8B4513 }), 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
-  createElipsoide(`leaves_${id}`, treeGroup, 0,  2.25 * base, 0, new THREE.MeshBasicMaterial({ color: 0x228B22 }), 1.5 * base, 1* base, 1.5 * base); // leaves  
-  createCylinder(`branch1_${id}`, treeGroup, 2/6 * base, 0.25 * base, 0, new THREE.MeshBasicMaterial({ color: 0x8B4513 }), 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
-  createElipsoide(`leaves2_${id}`, treeGroup, 1.1 * base, 1 * base, 0, new THREE.MeshBasicMaterial({ color: 0x228B22 }), 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
+  createCylinder(treeGroup, 0, 0, 0,  0x8B4513 , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
+  createCylinder( treeGroup, 2/4 * base, 0.7 * base, 0,  0x8B4513 , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
+  createElipsoide(treeGroup, 0,  2.25 * base, 0,  0x228B22 , 1.5 * base, 1* base, 1.5 * base); // leaves  
+  createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  0x8B4513 , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
+  createElipsoide( treeGroup, 1.1 * base, 1 * base, 0, 0x228B22, 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
 }
 
 
 function createOvni() {
     ovniGroup = new THREE.Group();
-    const ovniY = 30;
+    const ovniY = 180;
     addGroup(ovniGroup, scene, 0, ovniY, 0);
-    createElipsoide(`body_ovni`, ovniGroup, 0, 0, 0, new THREE.MeshBasicMaterial({ color: 0x808080 }), 2 * BASE, 0.7 * BASE, 2 * BASE); 
-    createCylinder(`prop_ovni`, ovniGroup, 0, -0.7 * BASE, 0, new THREE.MeshBasicMaterial({ color: 0x228B22 }), 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
-    createCapsule(`capsule_ovni`, ovniGroup, 0, 5 , 0, new THREE.MeshBasicMaterial({ color: 0x8B4513 }),   BASE , BASE); // capsule
+    createElipsoide(ovniGroup, 0, 0, 0,  0x808080 , 2 * BASE, 0.5 * BASE, 2 * BASE); 
+    createCylinder( ovniGroup, 0, -0.5 * BASE, 0, 0xd10a0a , 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
+    createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  0xbbfff4 ,   BASE , BASE); // capsule
    
     // Create target
-    const propellerY = ovniY - 0.7 * BASE - 0.5 * (1/5 * BASE); // center of propeller
+    const propellerY = -0.7 * BASE - 0.5 * (1/5 * BASE); // center of propeller
 
     // Create a spotlight target below the UFO
     const target = new THREE.Object3D();
-    target.position.set(0, propellerY - 4 * BASE, 0);
+    addGroup(target, ovniGroup, 0, propellerY - BASE, 0); // position target below the propeller
+
 
     // Add spotlight to the cylinder
-    spotLight = new THREE.SpotLight(0xffffff, 10); 
-    spotLight.position.set(0, propellerY ,0);
+    spotLight = new THREE.SpotLight(0xffffff, SPOTLIGHT_INTENSITY); 
+    spotLight.position.set(0, propellerY, 0);
     spotLight.target = target;
-     scene.add(spotLight);       
-    scene.add(spotLight.target);
+    spotLight.angle = Math.PI / 8;
+    ovniGroup.add(spotLight.target); // Add target to the group
+    ovniGroup.add(spotLight); // Add spotlight to the group
 
     helper = new THREE.SpotLightHelper(spotLight);
     scene.add(helper);
+
+     for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const angx = Math.cos(angle) * BASE * 1.5;
+            const angz = Math.sin(angle) * BASE * 1.5;
+            createSphere(ovniGroup, 0.2*BASE, 0xffdebb, angx, -0.4 * BASE , angz);
+    
+            const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY, 10);
+            //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
+            addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz); // Add point light to the ovniGroup
+            ovniGroup.add(pointLight);
+            const helper = new THREE.PointLightHelper(pointLight);
+            scene.add(helper);
+            ovniLights.push(pointLight);
+        }
 
     
 }
@@ -173,17 +171,6 @@ function createAllTrees() {
   }
 }
 
-/*function createCameras() {
-
-  persp_camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-  persp_camera.position.x = 50;
-  persp_camera.position.z = 50;
-  persp_camera.position.y = 30;
-  persp_camera.lookAt(scene.position);
-
-  resizeCameras();
-}*/
-
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -203,7 +190,7 @@ function createScene() {
 }
 
 function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
-    console.log("Creating floral texture...");
+
      // Generate the procedural texture
         const textureSize = 512;
         const canvas = document.createElement("canvas");
@@ -223,7 +210,6 @@ function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
       }
         context.fillRect(0, 0, textureSize, textureSize);
 
-    
         for (let i = 0; i < numDots; i++) {
           const x = Math.random() * textureSize;
           const y = Math.random() * textureSize;
@@ -244,14 +230,15 @@ function createSkydome() {
         var geometry = new THREE.SphereGeometry(600, 32, 32,0,Math.PI * 2,0,Math.PI/2);
 
         // Apply the texture to the material
-        materials.sky = new THREE.MeshPhongMaterial({ side: THREE.BackSide});
-    
-        // Create the skydome mesh
-        var skydome = new THREE.Mesh(geometry,materials.sky);
+        createMaterials();
 
+        for( let i = 0; i < 3; i++){ //Q- e a basic mesh???
+          mats[mats.length - 1][i].side = THREE.BackSide;
+        }
+        var skydome = new THREE.Mesh(geometry,mats[mats.length - 1][selectedMaterial]);
         skydome.position.set(0,-100,0);
-
         // Add the skydome to your scene
+        allMeshes.push(skydome);
         scene.add(skydome);
 }
 
@@ -261,18 +248,16 @@ function createGround() {
     let disMap = new THREE.TextureLoader().load('/heightmap2.png');
     disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping;
 
-    materials.ground = new THREE.MeshPhongMaterial({
-        displacementMap: disMap,
-       displacementScale: 150,
-        displacementBias: -50,
+    createMaterials(0x228B22);
 
-        //wireframe: true, 
-        
-        color:  0x228B22,
-    });
-    
-    groundMesh = new THREE.Mesh(groundGeo, materials.ground);
+    for( let i = 0; i < 3; i++){ //Q- e a basic mesh???
+      mats[mats.length - 1][i].displacementMap = disMap;
+      mats[mats.length - 1][i].displacementScale = 150;
+      mats[mats.length - 1][i].displacementBias = -50;
+    }
 
+    groundMesh = new THREE.Mesh(groundGeo, mats[mats.length - 1][selectedMaterial]);
+    allMeshes.push(groundMesh);
     scene.add(groundMesh);
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.rotation.y = 0;
@@ -282,7 +267,7 @@ function createGround() {
 function createMoon() {
     var moon = new THREE.Object3D();
 
-    createSphere("moon", 50, 0xFFF5CC , 30, 300, 30);
+    createSphere( scene, 35, 0xFFF5CC , 100, 300, 30);
     moonLight = new THREE.DirectionalLight(0xFFF5CC , 5);
     moonLight.position.set(-300, 300, -200);
 
@@ -295,9 +280,7 @@ function createMoon() {
 
 function handleKey1() {
   if ((!prevKey1) && key1) {
-   
-      materials.ground.map = createTexture(flowerColors, "#228B22", 2, 1000, false);
-    
+    materials.ground.map = createTexture(flowerColors, "#228B22", 2, 1000, false);
     materials.ground.needsUpdate = true;
     prevKey1 = true;
   }
@@ -305,9 +288,7 @@ function handleKey1() {
 
 function handleKey2() {
   if((!prevKey2) && key2) {
-   
-      materials.sky.map = createTexture(["#ffffff"], "#228B22", 1, 1000, true); 
-    
+    materials.sky.map = createTexture(["#ffffff"], "#228B22", 1, 1000, true); 
     materials.sky.needsUpdate = true;
     prevKey2 = true;
   }
@@ -325,12 +306,94 @@ function handleKeyD() {
   }
 }
 
+function handleKeyS() {
+    if ((!prevKeyS) && keyS) {
+    spotLight.intensity ? spotLight.intensity =  0 : spotLight.intensity = SPOTLIGHT_INTENSITY;
+    prevKeyS = true;
+  }
+}
+
+function handleKeyP() {
+  if ((!prevKeyP) && keyP) {
+    for (let i = 0; i < ovniLights.length; i++) {
+      const pontualLight = ovniLights[i];
+      pontualLight.intensity ? pontualLight.intensity = 0 : pontualLight.intensity = PONTUALLIGHT_INTENSITY;
+    }
+    prevKeyP = true;
+  }
+}
+
+
+function handleKeyQ(materialIndex) {
+  if ((!prevKeyQ) && keyQ) {
+      selectedMaterial = materialIndex;
+      changeMaterials();
+      prevKeyQ = true;
+  }
+}
+
+function handleKeyW(materialIndex) {
+  if ((!prevKeyW) && keyW) {
+      selectedMaterial = materialIndex;
+      changeMaterials();
+      prevKeyW = true;
+  }
+}
+
+function handleKeyE(materialIndex) {
+  if ((!prevKeyE) && keyE) {
+      selectedMaterial = materialIndex;
+      changeMaterials();
+      prevKeyE = true;
+    }
+}
+
+function handleKeyR() {
+  if ((!prevKeyR) && keyR) {
+    if(selectedMaterial != 3) {
+      prevIlumination = selectedMaterial;
+      selectedMaterial = 3;
+      changeMaterials();
+    }
+    else{
+      selectedMaterial = prevIlumination;
+      changeMaterials();
+    }
+    prevKeyR = true;
+  }
+}
+
+function handleOvniTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
+  let translX = keyRight - keyLeft;
+  let translZ = keyDown- keyUp ;
+  group.position.add(new THREE.Vector3(translX, 0, translZ).normalize().multiplyScalar(50 * time));
+}
+
+
+function handleKey7() {
+  if ((!prevKey7) && key7) {
+    camera_idx === 1 ?  camera_idx = 0 : camera_idx = 1;
+    prevKey7 = true;
+  }
+}
 
 function processKeys(time) {
   handleKey1();
   handleKey2();
   handleKeyD();
+  handleKeyS();
+  handleKeyP();
+  handleKeyQ(2);
+  handleKeyW(0);
+  handleKeyE(1);
+  handleKey7();
+  handleKeyR();
+  handleOvniTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, ovniGroup);
    
+}
+
+function handleOvniRotation(time) {
+  ovniGroup.rotation.y += 5 * time;
 }
 
 
@@ -342,6 +405,7 @@ function processKeys(time) {
 function update() {
   let delta = clock.getDelta();
   processKeys(delta);
+  handleOvniRotation(delta);
   controls.update();
   //checkCollisions();
  
@@ -351,7 +415,7 @@ function update() {
 /* DISPLAY */
 /////////////
 function render() {
-  renderer.render(scene, cameras[camera_idx]);
+  renderer.render(scene, persp_camera);
 }
 
 ////////////////////////////////
@@ -365,20 +429,23 @@ function init() {
   document.body.appendChild(renderer.domElement);
 
   createScene();
+  createCamera();
 
-  createCameras();
 
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+  const axesHelper = new THREE.AxesHelper(500);
+  scene.add(axesHelper);
+  controls = new OrbitControls( persp_camera, renderer.domElement);
+  controls.target.x = scene.position.x;
+  controls.target.y = scene.position.y+60;
+  controls.target.z = scene.position.z;
+    
+  controls.update();
 
-   const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(ambientLight);
-    const axesHelper = new THREE.AxesHelper(500); // 500 is the size — adjust as needed
-    scene.add(axesHelper);
-    controls = new OrbitControls( persp_camera, renderer.domElement);
-    controls.target.x = scene.position.x;
-    controls.target.y = scene.position.y+60;
-    controls.target.z = scene.position.z;
-     
-      controls.update();
+  document.body.appendChild( VRButton.createButton( renderer ) );
+  renderer.xr.enabled = true;
+  //renderer.setAnimationLoop(animate);
 
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);  
@@ -386,10 +453,8 @@ function init() {
 }
 
 function changeMaterials() {
-    for (const key in allMeshes) {
-        const mesh = allMeshes[key];
-        const color = mesh.userData.originalColor;
-        mesh.material = MATERIAL_TYPES[selectedMaterial](color);
+    for( let index = 0; index < allMeshes.length; index++) {
+        allMeshes[index].material = mats[index][selectedMaterial];
     }
 }
 
@@ -400,15 +465,15 @@ function animate() {
   update();
   
   render();
-
-  requestAnimationFrame(animate);
+  renderer.setAnimationLoop(animate);
+  //requestAnimationFrame(animate);
 }
 
 ////////////////////////////
 /* RESIZE WINDOW CALLBACK */
 ////////////////////////////
 
-function resizeCameras() {
+function resizeCamera() {
   if (!(window.innerHeight > 0 && window.innerWidth > 0)) {
     return;
   }
@@ -420,7 +485,7 @@ function resizeCameras() {
 
 function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
-  resizeCameras();
+  resizeCamera();
 }
 
 
@@ -436,10 +501,6 @@ function onKeyDown(e) {
     case 50: // 2
       key2 = true;
       break;
-    case 51: // 3
-    case 52: // 4
-      camera_idx = e.keyCode - 49;
-      break;
     case 55: // 7
       key7 = true;
       break;
@@ -447,21 +508,19 @@ function onKeyDown(e) {
     case 114: // r
       keyR = true;
       break;
-    case 70: // F
-    case 102: // f
-      keyF = true;
-      break;
+  
     case 81: // Q
     case 113: // q
       keyQ = true;
       break;
-    case 65: // A
-    case 97: // a
-      keyA = true;
-      break;
+  
     case 87: // W
     case 119: // w
       keyW = true;
+      break;
+    case 80: // P
+    case 112: // p
+      keyP = true;
       break;
     case 83: // S
     case 115: // s
@@ -506,35 +565,37 @@ function onKeyUp(e) {
       break;
     case 55: // 7
       key7 = false;
-   
+      prevKey7 = false;
       break;
     case 82: // R
     case 114: // r
       keyR = false;
-      break;
-    case 70: // F
-    case 102: // f
-      keyF = false;
+      prevKeyR = false;
       break;
     case 81: // Q
     case 113: // q
       keyQ = false;
-      break;
-    case 65: // A
-    case 97: // a
-      keyA = false;
+      prevKeyQ = false;
       break;
     case 87: // W
     case 119: // w
       keyW = false;
+      prevKeyW = false;
+      break;
+    case 80: // P
+    case 112: // p
+      keyP = false;
+      prevKeyP = false;
       break;
     case 83: // S
     case 115: // s
       keyS = false;
+      prevKeyS = false;
       break;
     case 69: // E
     case 101: // e
       keyE = false;
+      prevKeyE = false;
       break;
     case 68: // D
     case 100: // d
