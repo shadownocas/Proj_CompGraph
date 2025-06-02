@@ -3,11 +3,12 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import * as Stats from "three/addons/libs/stats.module.js";
 
+import * as House from "./house.js"
 
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, materials = {}, helper, mats = [];
+let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, helper, mats = [];
 
 let camera_idx = 3, persp_camera, moonLight, treeGroup, ovniGroup , spotLight, ovniLights = [];
 
@@ -22,10 +23,17 @@ const SPOTLIGHT_INTENSITY = 10000;
 const PONTUALLIGHT_INTENSITY = 1000;
 const BASE = 10; // base unit for scaling
 
+const materials = {
+  blue: new THREE.MeshBasicMaterial({ color: "#3666e0" }),
+  white: new THREE.MeshBasicMaterial({ color: "#e0e0e0" }),
+  red: new THREE.MeshBasicMaterial({ color: "#e1341e" }),
+  windows: new THREE.MeshBasicMaterial({ color: "#261968" }),
+};
+
+
 function createMaterials(color) {
   mats.push( [ new THREE.MeshPhongMaterial({ color }), new THREE.MeshToonMaterial({ color }), 
     new THREE.MeshLambertMaterial({ color }), new THREE.MeshBasicMaterial({ color }) ]);
-
 }
 
 function createCylinder( obj, x, y, z,color, radiust, radiusb, height, rotate = null) {
@@ -78,7 +86,7 @@ function createCapsule(obj, x, y, z, color, radius, capHeight) {
 
 function createCamera() {
  
-  persp_camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+  persp_camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 3000);
   persp_camera.position.x = 50;
   persp_camera.position.z = 50;
   persp_camera.position.y = 500;
@@ -94,8 +102,7 @@ function addGroup(group, parent, x, y, z) {
   parent.add(group);
 }
 
-function createTree(x , z, base, id) { //with id pq assim n dava para fazer diff keys para a mesh...
-  x = x ?? 0, z = z ?? 0;
+function createTree(x, z, base, id) { //with id pq assim n dava para fazer diff keys para a mesh...
   treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
   addGroup(treeGroup, scene, x, 20, z);
   createCylinder(treeGroup, 0, 0, 0,  0x8B4513 , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
@@ -182,6 +189,8 @@ function createScene() {
   createMoon();
   createAllTrees();
   createOvni();
+  createHouse();
+
 
    /*const geometry = new THREE.BoxGeometry(10, 20, 20);
     const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xD92649 }));
@@ -224,6 +233,18 @@ function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
         return texture;
 }
 
+function createHouse() {
+  const house = new THREE.Group();
+
+  House.createMesh(House.house_vertices, House.house_accent, materials.blue, house);
+  House.createMesh(House.house_vertices, House.house_walls, materials.white, house);
+  House.createMesh(House.house_vertices, House.house_roof, materials.red, house);
+  House.createMesh(House.house_vertices, House.house_windows, materials.windows, house);
+
+  house.scale.multiplyScalar(10/6);
+
+  addGroup(house, scene, 0, 0, 0);
+}
 
 function createSkydome() {
         // Create a sphere geometry
@@ -395,9 +416,6 @@ function processKeys(time) {
 function handleOvniRotation(time) {
   ovniGroup.rotation.y += 5 * time;
 }
-
-
-
 
 ////////////
 /* UPDATE */
