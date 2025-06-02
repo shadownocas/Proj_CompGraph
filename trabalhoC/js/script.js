@@ -19,10 +19,14 @@ let flowerColors = ["#ffffff", "#ffff00", "#e066ff", "#00a1ff"];
 let groundMesh, prevIlumination = 0;
 
 let clock = new THREE.Clock();
-const SPOTLIGHT_INTENSITY = 10000;
+const SPOTLIGHT_INTENSITY = 100000;
 const PONTUALLIGHT_INTENSITY = 1000;
 const MOONLIGHT_INTENSITY = 2;
 const BASE = 10; // base unit for scaling
+
+////////////////////////
+/* CREATE MATERIAL(S) */
+////////////////////////
 
 const materials = {
   house_accent: createMat({ color: "#3666e0" }),
@@ -36,11 +40,11 @@ const materials = {
   ovni_body: createMat({ color: "#808080" }),
   ovni_cap: createMat({ color: "#bbfff4" }),
   ground: createMat({ color: "#228b22" }),
-  sky: createMat({}),
+  sky: createMat({ color: "#261968" }),
 };
 
 function createMat({color, emissive, specular, shininess}) {
-  return [ 
+  return [
     new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000"}), 
     new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }), 
     new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
@@ -51,6 +55,8 @@ function createMat({color, emissive, specular, shininess}) {
 function createMesh(geometry, material) {
   mats.push(materials[material]);
   const mesh = new THREE.Mesh(geometry, materials[material][selectedMaterial]);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   allMeshes.push(mesh);
   return mesh;
 }
@@ -98,7 +104,6 @@ function createCapsule(obj, x, y, z, material, radius, capHeight) {
 }
 
 function createCamera() {
- 
   persp_camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 3000);
   persp_camera.position.x = 50;
   persp_camera.position.z = 50;
@@ -114,7 +119,7 @@ function addGroup(group, parent, x, y, z) {
 }
 
 function createTree(x, z, base, id) { //with id pq assim n dava para fazer diff keys para a mesh...
-  treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
+  const treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
   addGroup(treeGroup, scene, x, 20, z);
   createCylinder(treeGroup, 0, 0, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
   createCylinder( treeGroup, 2/4 * base, 0.7 * base, 0,  "wood" , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
@@ -125,48 +130,47 @@ function createTree(x, z, base, id) { //with id pq assim n dava para fazer diff 
 
 
 function createOvni() {
-    ovniGroup = new THREE.Group();
-    const ovniY = 180;
-    addGroup(ovniGroup, scene, 0, ovniY, 0);
-    createElipsoide(ovniGroup, 0, 0, 0,  "ovni_body" , 2 * BASE, 0.5 * BASE, 2 * BASE); 
-    createCylinder( ovniGroup, 0, -0.5 * BASE, 0, "house_roof", 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
-    createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  "ovni_cap" ,   BASE , BASE); // capsule
-   
-    // Create target
-    const propellerY = -0.7 * BASE - 0.5 * (1/5 * BASE); // center of propeller
+  ovniGroup = new THREE.Group();
+  const ovniY = 180;
+  addGroup(ovniGroup, scene, 0, ovniY, 0);
+  createElipsoide(ovniGroup, 0, 0, 0,  "ovni_body" , 2 * BASE, 0.5 * BASE, 2 * BASE); 
+  createCylinder( ovniGroup, 0, -0.5 * BASE, 0, "house_roof", 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
+  createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  "ovni_cap" ,   BASE , BASE); // capsule
+  
+  // Create target
+  const propellerY = -0.7 * BASE - 0.5 * (1/5 * BASE); // center of propeller
 
-    // Create a spotlight target below the UFO
-    const target = new THREE.Object3D();
-    addGroup(target, ovniGroup, 0, propellerY - BASE, 0); // position target below the propeller
+  // Create a spotlight target below the UFO
+  const target = new THREE.Object3D();
+  addGroup(target, ovniGroup, 0, propellerY - BASE, 0); // position target below the propeller
 
 
-    // Add spotlight to the cylinder
-    spotLight = new THREE.SpotLight(0xffffff, SPOTLIGHT_INTENSITY); 
-    spotLight.position.set(0, propellerY, 0);
-    spotLight.target = target;
-    spotLight.angle = Math.PI / 8;
-    ovniGroup.add(spotLight.target); // Add target to the group
-    ovniGroup.add(spotLight); // Add spotlight to the group
+  // Add spotlight to the cylinder
+  spotLight = new THREE.SpotLight(0xff00ff, SPOTLIGHT_INTENSITY); 
+  spotLight.position.set(0, propellerY, 0);
+  spotLight.target = target;
+  spotLight.angle = Math.PI / 8;
+  spotLight.penumbra = 0.99;
+  ovniGroup.add(spotLight.target); // Add target to the group
+  ovniGroup.add(spotLight); // Add spotlight to the group
 
-    helper = new THREE.SpotLightHelper(spotLight);
+  helper = new THREE.SpotLightHelper(spotLight);
+  scene.add(helper);
+
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const angx = Math.cos(angle) * BASE * 1.5;
+    const angz = Math.sin(angle) * BASE * 1.5;
+    createSphere(ovniGroup, 0.2*BASE, "ovni_light", angx, -0.4 * BASE , angz);
+
+    const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY, 10);
+    //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
+    addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz); // Add point light to the ovniGroup
+    ovniGroup.add(pointLight);
+    const helper = new THREE.PointLightHelper(pointLight);
     scene.add(helper);
-
-     for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const angx = Math.cos(angle) * BASE * 1.5;
-            const angz = Math.sin(angle) * BASE * 1.5;
-            createSphere(ovniGroup, 0.2*BASE, "ovni_light", angx, -0.4 * BASE , angz);
-    
-            const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY, 10);
-            //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
-            addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz); // Add point light to the ovniGroup
-            ovniGroup.add(pointLight);
-            const helper = new THREE.PointLightHelper(pointLight);
-            scene.add(helper);
-            ovniLights.push(pointLight);
-        }
-
-    
+    ovniLights.push(pointLight);
+  }
 }
 
 
@@ -265,7 +269,7 @@ function createSkydome() {
     materials.sky[i].side = THREE.BackSide;
   }
 
-  var skydome = createMesh(geometry, "sky");
+  var skydome = new THREE.Mesh(geometry, materials.sky[3]);
   addGroup(skydome, scene, 0, -100, 0);
 }
 
@@ -276,12 +280,12 @@ function createGround() {
     disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping;
     
     
-    const mats = materials.ground;
+    const mat = materials.ground;
     
     for( let i = 0; i < 3; i++){ //Q- e a basic mesh material??? (não suporta displacementMaps)
-      mats[i].displacementMap = disMap;
-      mats[i].displacementScale = 150;
-      mats[i].displacementBias = -50;
+      mat[i].displacementMap = disMap;
+      mat[i].displacementScale = 150;
+      mat[i].displacementBias = -50;
     }
     
     geometry.computeVertexNormals();
@@ -319,8 +323,10 @@ function handleKey1() {
 
 function handleKey2() {
   if((!prevKey2) && key2) {
-    materials.sky.map = createTexture(["#ffffff"], "#228B22", 1, 1000, true); 
-    materials.sky.needsUpdate = true;
+    for( let i = 0; i < 4; i++){
+      materials.sky[i].map = createTexture(["#ffffff"], "#228B22", 1, 1000, true);
+      materials.sky[i].needsUpdate = true;
+    }
     prevKey2 = true;
   }
 }
@@ -454,13 +460,14 @@ function init() {
     antialias: true,
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
   createScene();
   createCamera();
 
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.04);
   scene.add(ambientLight);
   const axesHelper = new THREE.AxesHelper(500);
   scene.add(axesHelper);
@@ -468,6 +475,9 @@ function init() {
   controls.target.x = scene.position.x;
   controls.target.y = scene.position.y+60;
   controls.target.z = scene.position.z;
+  controls.maxPolarAngle = Math.PI/2 - Math.PI/160;
+  controls.minDistance = 0;
+  controls.maxDistance = 500;
     
   controls.update();
 
