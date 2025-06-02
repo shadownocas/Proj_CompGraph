@@ -21,67 +21,80 @@ let groundMesh, prevIlumination = 0;
 let clock = new THREE.Clock();
 const SPOTLIGHT_INTENSITY = 10000;
 const PONTUALLIGHT_INTENSITY = 1000;
+const MOONLIGHT_INTENSITY = 2;
 const BASE = 10; // base unit for scaling
 
 const materials = {
-  blue: new THREE.MeshBasicMaterial({ color: "#3666e0" }),
-  white: new THREE.MeshBasicMaterial({ color: "#e0e0e0" }),
-  red: new THREE.MeshBasicMaterial({ color: "#e1341e" }),
-  windows: new THREE.MeshBasicMaterial({ color: "#261968" }),
+  house_accent: createMat({ color: "#3666e0" }),
+  house_wall: createMat({ color: "#e0e0e0" }),
+  house_roof: createMat({ color: "#e1341e" }),
+  house_window: createMat({ color: "#261968", shininess: 150, specular: 80, emissive: "#ebdf14" }),
+  wood: createMat({ color: "#8b4513" }),
+  leaves: createMat({ color: "#228B22"}),
+  moon: createMat({ color: "#fff5cc", emissive: "#fff5cc", }),
+  ovni_light: createMat({ color: "#ffdebb", emissive: "#ffdebb" }),
+  ovni_body: createMat({ color: "#808080" }),
+  ovni_cap: createMat({ color: "#bbfff4" }),
+  ground: createMat({ color: "#228b22" }),
+  sky: createMat({}),
 };
 
-
-function createMaterials(color) {
-  mats.push( [ new THREE.MeshPhongMaterial({ color }), new THREE.MeshToonMaterial({ color }), 
-    new THREE.MeshLambertMaterial({ color }), new THREE.MeshBasicMaterial({ color }) ]);
+function createMat({color, emissive, specular, shininess}) {
+  return [ 
+    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000"}), 
+    new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }), 
+    new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
+    new THREE.MeshBasicMaterial({ color })
+  ];
 }
 
-function createCylinder( obj, x, y, z,color, radiust, radiusb, height, rotate = null) {
-  createMaterials(color);
-  const geometry = new THREE.CylinderGeometry(radiust, radiusb, height);
-  let material = mats[mats.length-1][selectedMaterial];
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y, z);
-  if(rotate) mesh.rotation.z = Math.PI / 4 * rotate //rodar no eixo z
-  obj.add(mesh);
-    allMeshes.push(mesh);
-
-}
-
-function createSphere( obj, radius, color, x, y, z) {
-  createMaterials(color);
-  let geometry = new THREE.SphereGeometry(radius, 32, 32);
-  let material = mats[mats.length-1][selectedMaterial];
-  let sphere = new THREE.Mesh(geometry, material);
-  sphere.position.set(x, y, z);
-  obj.add(sphere);
-  allMeshes.push(sphere);
-
-  return sphere;
-}
-
-function createElipsoide(obj, x, y, z, color, radiusX, radiusY, radiusZ) {
-  createMaterials(color);
-  const geometry = new THREE.SphereGeometry(1, 32, 32);
-  let material = mats[mats.length-1][selectedMaterial];
-  geometry.scale(radiusX, radiusY, radiusZ);
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y, z);
-  obj.add(mesh);
+function createMesh(geometry, material) {
+  mats.push(materials[material]);
+  const mesh = new THREE.Mesh(geometry, materials[material][selectedMaterial]);
   allMeshes.push(mesh);
   return mesh;
 }
 
-function createCapsule(obj, x, y, z, color, radius, capHeight) {
-  createMaterials(color);
-  let material = mats[mats.length-1][selectedMaterial];
+function createHouseMesh(vertices, faces, material, parent) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setIndex(faces);
+  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+
+  addGroup(createMesh(geometry, material), parent, 0, 0, 0);
+}
+
+function createCylinder(obj, x, y, z, material, radiust, radiusb, height, rotate = null) {
+  const geometry = new THREE.CylinderGeometry(radiust, radiusb, height);
+  const mesh = createMesh(geometry, material);
+  
+  if(rotate) mesh.rotation.z = Math.PI / 4 * rotate //rodar no eixo z
+  addGroup(mesh, obj, x, y, z);
+  return mesh;
+}
+
+function createSphere(obj, radius, material, x, y, z) {
+  let geometry = new THREE.SphereGeometry(radius, 32, 32);
+  let mesh = createMesh(geometry, material);
+
+  addGroup(mesh, obj, x, y, z);
+  return mesh;
+}
+
+function createElipsoide(obj, x, y, z, material, radiusX, radiusY, radiusZ) {
+  const mesh = createSphere(obj, 1, material, x, y, z);
+  mesh.geometry.scale(radiusX, radiusY, radiusZ);
+  return mesh;
+}
+
+function createCapsule(obj, x, y, z, material, radius, capHeight) {
   // Calculate thetaLength to simulate a cap. Full sphere height = 2 * radius
   const thetaLength = Math.acos((radius - capHeight) / radius);
   const geometry = new THREE.SphereGeometry(radius, 32, 32, 0, Math.PI * 2, 0, thetaLength );
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y, z);
-  allMeshes.push(mesh);
-  obj.add(mesh);
+
+  const mesh = createMesh(geometry, material);
+  addGroup(mesh, obj, x, y, z);
+  return mesh;
 }
 
 function createCamera() {
@@ -91,8 +104,6 @@ function createCamera() {
   persp_camera.position.z = 50;
   persp_camera.position.y = 500;
   persp_camera.lookAt(scene.position);
-
-
 
   resizeCamera();
 }
@@ -105,11 +116,11 @@ function addGroup(group, parent, x, y, z) {
 function createTree(x, z, base, id) { //with id pq assim n dava para fazer diff keys para a mesh...
   treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
   addGroup(treeGroup, scene, x, 20, z);
-  createCylinder(treeGroup, 0, 0, 0,  0x8B4513 , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
-  createCylinder( treeGroup, 2/4 * base, 0.7 * base, 0,  0x8B4513 , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
-  createElipsoide(treeGroup, 0,  2.25 * base, 0,  0x228B22 , 1.5 * base, 1* base, 1.5 * base); // leaves  
-  createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  0x8B4513 , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
-  createElipsoide( treeGroup, 1.1 * base, 1 * base, 0, 0x228B22, 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
+  createCylinder(treeGroup, 0, 0, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
+  createCylinder( treeGroup, 2/4 * base, 0.7 * base, 0,  "wood" , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
+  createElipsoide(treeGroup, 0,  2.25 * base, 0,  "leaves" , 1.5 * base, 1* base, 1.5 * base); // leaves  
+  createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  "wood" , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
+  createElipsoide( treeGroup, 1.1 * base, 1 * base, 0, "leaves", 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
 }
 
 
@@ -117,9 +128,9 @@ function createOvni() {
     ovniGroup = new THREE.Group();
     const ovniY = 180;
     addGroup(ovniGroup, scene, 0, ovniY, 0);
-    createElipsoide(ovniGroup, 0, 0, 0,  0x808080 , 2 * BASE, 0.5 * BASE, 2 * BASE); 
-    createCylinder( ovniGroup, 0, -0.5 * BASE, 0, 0xd10a0a , 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
-    createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  0xbbfff4 ,   BASE , BASE); // capsule
+    createElipsoide(ovniGroup, 0, 0, 0,  "ovni_body" , 2 * BASE, 0.5 * BASE, 2 * BASE); 
+    createCylinder( ovniGroup, 0, -0.5 * BASE, 0, "house_roof", 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
+    createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  "ovni_cap" ,   BASE , BASE); // capsule
    
     // Create target
     const propellerY = -0.7 * BASE - 0.5 * (1/5 * BASE); // center of propeller
@@ -144,7 +155,7 @@ function createOvni() {
             const angle = (i / 6) * Math.PI * 2;
             const angx = Math.cos(angle) * BASE * 1.5;
             const angz = Math.sin(angle) * BASE * 1.5;
-            createSphere(ovniGroup, 0.2*BASE, 0xffdebb, angx, -0.4 * BASE , angz);
+            createSphere(ovniGroup, 0.2*BASE, "ovni_light", angx, -0.4 * BASE , angz);
     
             const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY, 10);
             //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
@@ -236,49 +247,46 @@ function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
 function createHouse() {
   const house = new THREE.Group();
 
-  House.createMesh(House.house_vertices, House.house_accent, materials.blue, house);
-  House.createMesh(House.house_vertices, House.house_walls, materials.white, house);
-  House.createMesh(House.house_vertices, House.house_roof, materials.red, house);
-  House.createMesh(House.house_vertices, House.house_windows, materials.windows, house);
+  createHouseMesh(House.house_vertices, House.house_accent, "house_accent", house);
+  createHouseMesh(House.house_vertices, House.house_walls, "house_wall", house);
+  createHouseMesh(House.house_vertices, House.house_roof, "house_roof", house);
+  createHouseMesh(House.house_vertices, House.house_windows, "house_window", house);
 
   house.scale.multiplyScalar(10/6);
 
-  addGroup(house, scene, 0, 0, 0);
+  addGroup(house, scene, 0, 20, 0);
 }
 
 function createSkydome() {
-        // Create a sphere geometry
-        var geometry = new THREE.SphereGeometry(600, 32, 32,0,Math.PI * 2,0,Math.PI/2);
+  // Create a sphere geometry
+  var geometry = new THREE.SphereGeometry(600, 32, 32,0,Math.PI * 2,0,Math.PI/2);
 
-        // Apply the texture to the material
-        createMaterials();
+  for( let i = 0; i < 4; i++){
+    materials.sky[i].side = THREE.BackSide;
+  }
 
-        for( let i = 0; i < 3; i++){ //Q- e a basic mesh???
-          mats[mats.length - 1][i].side = THREE.BackSide;
-        }
-        var skydome = new THREE.Mesh(geometry,mats[mats.length - 1][selectedMaterial]);
-        skydome.position.set(0,-100,0);
-        // Add the skydome to your scene
-        allMeshes.push(skydome);
-        scene.add(skydome);
+  var skydome = createMesh(geometry, "sky");
+  addGroup(skydome, scene, 0, -100, 0);
 }
 
 
 function createGround() {
-    const groundGeo = new THREE.PlaneGeometry(1700, 1700, 250, 250);
+    const geometry = new THREE.PlaneGeometry(1700, 1700, 250, 250);
     let disMap = new THREE.TextureLoader().load('/heightmap2.png');
     disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping;
-
-    createMaterials(0x228B22);
-
-    for( let i = 0; i < 3; i++){ //Q- e a basic mesh???
-      mats[mats.length - 1][i].displacementMap = disMap;
-      mats[mats.length - 1][i].displacementScale = 150;
-      mats[mats.length - 1][i].displacementBias = -50;
+    
+    
+    const mats = materials.ground;
+    
+    for( let i = 0; i < 3; i++){ //Q- e a basic mesh material??? (não suporta displacementMaps)
+      mats[i].displacementMap = disMap;
+      mats[i].displacementScale = 150;
+      mats[i].displacementBias = -50;
     }
+    
+    geometry.computeVertexNormals();
+    groundMesh = createMesh(geometry, "ground");
 
-    groundMesh = new THREE.Mesh(groundGeo, mats[mats.length - 1][selectedMaterial]);
-    allMeshes.push(groundMesh);
     scene.add(groundMesh);
     groundMesh.rotation.x = -Math.PI / 2;
     groundMesh.rotation.y = 0;
@@ -288,8 +296,8 @@ function createGround() {
 function createMoon() {
     var moon = new THREE.Object3D();
 
-    createSphere( scene, 35, 0xFFF5CC , 100, 300, 30);
-    moonLight = new THREE.DirectionalLight(0xFFF5CC , 5);
+    createSphere(scene, 35, "moon" , 100, 300, 30);
+    moonLight = new THREE.DirectionalLight(0xFFF5CC , MOONLIGHT_INTENSITY);
     moonLight.position.set(-300, 300, -200);
 
     moonLight.target.position.set(1, -1, 1);
@@ -301,8 +309,10 @@ function createMoon() {
 
 function handleKey1() {
   if ((!prevKey1) && key1) {
-    materials.ground.map = createTexture(flowerColors, "#228B22", 2, 1000, false);
-    materials.ground.needsUpdate = true;
+    for( let i = 0; i < 4; i++){ //Q- e a basic mesh???
+      materials.ground[i].map = createTexture(flowerColors, "#228B22", 2, 1000, false);
+      materials.ground[i].needsUpdate = true;
+    }
     prevKey1 = true;
   }
 }
@@ -321,7 +331,7 @@ function handleKeyD() {
         moonLight.intensity = 0;
       }
       else {
-        moonLight.intensity = 5;
+        moonLight.intensity = MOONLIGHT_INTENSITY;
       }
     prevKeyD = true;
   }

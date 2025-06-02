@@ -1,6 +1,4 @@
 
-import * as THREE from "three";
-
 export const house_vertices = new Float32Array([
   0, 12, 0,   // v0
   0, 0, 0,    // v1
@@ -337,40 +335,3 @@ export const house_windows = [
   78+8, 81+8, 79+8,
   81+8, 78+8, 80+8,
 ];
-
-export function createMesh(vertices, faces, material, parent) {
-  const geometry = new THREE.BufferGeometry();
-  geometry.setIndex(faces);
-  geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-
-  parent.add(new THREE.Mesh(geometry, material));
-}
-
-// export function createHouse() {
-//   const accent = new THREE.BufferGeometry();
-//   accent.setIndex(house_accent);
-//   accent.setAttribute('position', new THREE.BufferAttribute(house_vertices, 3));
-
-//   const walls = new THREE.BufferGeometry();
-//   walls.setIndex(house_walls);
-//   walls.setAttribute('position', new THREE.BufferAttribute(house_vertices, 3));
-
-
-//   const roof = new THREE.BufferGeometry();
-//   roof.setIndex(house_roof);
-//   roof.setAttribute('position', new THREE.BufferAttribute(house_vertices, 3));
-
-//   const windows = new THREE.BufferGeometry();
-//   windows.setIndex(house_windows);
-//   windows.setAttribute('position', new THREE.BufferAttribute(house_vertices, 3));
-
-//   const house = new THREE.Group();
-
-//   addGroup(new THREE.Mesh(accent, materials.blue), house);
-//   addGroup(new THREE.Mesh(walls, materials.white), house);
-//   addGroup(new THREE.Mesh(roof, materials.red), house);
-//   addGroup(new THREE.Mesh(windows, materials.windows), house);
-//   addGroup(house, scene, 0, 0, 0);
-//   house.scale.multiplyScalar(10/6);
-// }
-
