@@ -335,3 +335,8 @@ export const house_windows = [
   78+8, 81+8, 79+8,
   81+8, 78+8, 80+8,
 ];
+
+export const house_door = [
+  3, 7, 5,
+  3, 9, 7
+];

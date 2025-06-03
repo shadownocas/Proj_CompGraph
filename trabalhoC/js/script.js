@@ -19,7 +19,7 @@ let flowerColors = ["#ffffff", "#ffff00", "#e066ff", "#00a1ff"];
 let groundMesh, prevIlumination = 0;
 
 let clock = new THREE.Clock();
-const SPOTLIGHT_INTENSITY = 100000;
+const SPOTLIGHT_INTENSITY = 10;
 const PONTUALLIGHT_INTENSITY = 100;
 const MOONLIGHT_INTENSITY = 0.5;
 const BASE = 10; // base unit for scaling
@@ -145,7 +145,7 @@ function createOvni() {
 
 
   // Add spotlight to the cylinder
-  spotLight = new THREE.SpotLight(0xff00ff, SPOTLIGHT_INTENSITY); 
+  spotLight = new THREE.SpotLight(0xff00ff, SPOTLIGHT_INTENSITY, 100); 
   spotLight.position.set(0, propellerY, 0);
   spotLight.target = target;
   spotLight.angle = Math.PI / 8;
@@ -162,7 +162,7 @@ function createOvni() {
     const angz = Math.sin(angle) * BASE * 1.5;
     createSphere(ovniGroup, 0.2*BASE, "ovni_light", angx, -0.4 * BASE , angz);
 
-    const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY, 10);
+    const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY);
     //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
     addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz); // Add point light to the ovniGroup
     ovniGroup.add(pointLight);
@@ -246,6 +246,7 @@ function createHouse() {
   createHouseMesh(House.house_vertices, House.house_walls, "house_wall", house);
   createHouseMesh(House.house_vertices, House.house_roof, "house_roof", house);
   createHouseMesh(House.house_vertices, House.house_windows, "house_window", house);
+  createHouseMesh(House.house_vertices, House.house_door, "wood", house);
 
   house.scale.multiplyScalar(10/6);
 
