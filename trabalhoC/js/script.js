@@ -20,8 +20,8 @@ let groundMesh, prevIlumination = 0;
 
 let clock = new THREE.Clock();
 const SPOTLIGHT_INTENSITY = 100000;
-const PONTUALLIGHT_INTENSITY = 1000;
-const MOONLIGHT_INTENSITY = 2;
+const PONTUALLIGHT_INTENSITY = 100;
+const MOONLIGHT_INTENSITY = 0.5;
 const BASE = 10; // base unit for scaling
 
 ////////////////////////
@@ -39,13 +39,13 @@ const materials = {
   ovni_light: createMat({ color: "#ffdebb", emissive: "#ffdebb" }),
   ovni_body: createMat({ color: "#808080" }),
   ovni_cap: createMat({ color: "#bbfff4" }),
-  ground: createMat({ color: "#228b22" }),
-  sky: createMat({ color: "#261968" }),
+  ground: createMat({ }),
+  sky: new THREE.MeshBasicMaterial({}),
 };
 
 function createMat({color, emissive, specular, shininess}) {
   return [
-    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000"}), 
+    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000", specular: "#0f0f0f"}), 
     new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }), 
     new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
     new THREE.MeshBasicMaterial({ color })
@@ -96,7 +96,7 @@ function createElipsoide(obj, x, y, z, material, radiusX, radiusY, radiusZ) {
 function createCapsule(obj, x, y, z, material, radius, capHeight) {
   // Calculate thetaLength to simulate a cap. Full sphere height = 2 * radius
   const thetaLength = Math.acos((radius - capHeight) / radius);
-  const geometry = new THREE.SphereGeometry(radius, 32, 32, 0, Math.PI * 2, 0, thetaLength );
+  const geometry = new THREE.SphereGeometry(radius, 32, 32, 0, Math.PI * 2, 0, thetaLength);
 
   const mesh = createMesh(geometry, material);
   addGroup(mesh, obj, x, y, z);
@@ -122,19 +122,18 @@ function createTree(x, z, base, id) { //with id pq assim n dava para fazer diff 
   const treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
   addGroup(treeGroup, scene, x, 20, z);
   createCylinder(treeGroup, 0, 0, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
-  createCylinder( treeGroup, 2/4 * base, 0.7 * base, 0,  "wood" , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
+  createCylinder(treeGroup, 2/4 * base, 0.7 * base, 0,  "wood" , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
   createElipsoide(treeGroup, 0,  2.25 * base, 0,  "leaves" , 1.5 * base, 1* base, 1.5 * base); // leaves  
   createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  "wood" , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
-  createElipsoide( treeGroup, 1.1 * base, 1 * base, 0, "leaves", 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
+  createElipsoide(treeGroup, 1.1 * base, 1 * base, 0, "leaves", 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
 }
-
 
 function createOvni() {
   ovniGroup = new THREE.Group();
-  const ovniY = 180;
+  const ovniY = 100;
   addGroup(ovniGroup, scene, 0, ovniY, 0);
   createElipsoide(ovniGroup, 0, 0, 0,  "ovni_body" , 2 * BASE, 0.5 * BASE, 2 * BASE); 
-  createCylinder( ovniGroup, 0, -0.5 * BASE, 0, "house_roof", 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
+  createCylinder(ovniGroup, 0, -0.5 * BASE, 0, "house_roof", 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
   createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  "ovni_cap" ,   BASE , BASE); // capsule
   
   // Create target
@@ -173,7 +172,6 @@ function createOvni() {
   }
 }
 
-
 function createAllTrees() {
   let baseSizes = [10, 14, 18];
   const rangeX = 500;
@@ -205,47 +203,40 @@ function createScene() {
   createAllTrees();
   createOvni();
   createHouse();
-
-
-   /*const geometry = new THREE.BoxGeometry(10, 20, 20);
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xD92649 }));
-    mesh.position.set(30,30,30);
-    scene.add(mesh);*/
 }
 
 function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
 
-     // Generate the procedural texture
-        const textureSize = 512;
-        const canvas = document.createElement("canvas");
-        canvas.width = textureSize;
-        canvas.height = textureSize;
-        const context = canvas.getContext("2d");
-    
-      if(!gradient) {
-        context.fillStyle = bgColor;
-      }
-      else{
-        const gradient = context.createLinearGradient(0, 0, 0, textureSize);
-        gradient.addColorStop(0, '#00008B'); // Blue color
-        gradient.addColorStop(0.8, '#00008B'); // Blue color
-        gradient.addColorStop(1, '#9400D3'); // Purple color
-        context.fillStyle = gradient;
-      }
-        context.fillRect(0, 0, textureSize, textureSize);
+  // Generate the procedural texture
+  const textureSize = 512;
+  const canvas = document.createElement("canvas");
+  canvas.width = textureSize;
+  canvas.height = textureSize;
+  const context = canvas.getContext("2d");
 
-        for (let i = 0; i < numDots; i++) {
-          const x = Math.random() * textureSize;
-          const y = Math.random() * textureSize;
-          const color = dotColors[Math.floor(Math.random() * dotColors.length)];
-    
-          context.fillStyle = color;
-          context.fillRect(x, y, dotSize, dotSize);
-        }
-    
-        const texture = new THREE.Texture(canvas);
-        texture.needsUpdate = true;
-        return texture;
+  if(!gradient) {
+    context.fillStyle = bgColor;
+  } else {
+    const gradient = context.createLinearGradient(0, 0, 0, textureSize);
+    gradient.addColorStop(0,   '#00008B'); // Blue color
+    gradient.addColorStop(0.7, '#00008B'); // Blue color
+    gradient.addColorStop(1,   '#9400D3'); // Purple color
+    context.fillStyle = gradient;
+  }
+  context.fillRect(0, 0, textureSize, textureSize);
+
+  for (let i = 0; i < numDots; i++) {
+    const x = Math.random() * textureSize;
+    const y = Math.random() * textureSize;
+    const color = dotColors[Math.floor(Math.random() * dotColors.length)];
+
+    context.fillStyle = color;
+    context.fillRect(x, y, dotSize, dotSize);
+  }
+
+  const texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function createHouse() {
@@ -258,62 +249,64 @@ function createHouse() {
 
   house.scale.multiplyScalar(10/6);
 
-  addGroup(house, scene, 0, 20, 0);
+  addGroup(house, scene, -10, -1, 20);
+  house.rotateY(Math.PI / 3)
 }
 
 function createSkydome() {
   // Create a sphere geometry
-  var geometry = new THREE.SphereGeometry(600, 32, 32,0,Math.PI * 2,0,Math.PI/2);
+  let geometry = new THREE.SphereGeometry(600, 32, 32,0,Math.PI * 2,0,Math.PI/2);
 
-  for( let i = 0; i < 4; i++){
-    materials.sky[i].side = THREE.BackSide;
-  }
+  materials.sky.side = THREE.BackSide;
 
-  var skydome = new THREE.Mesh(geometry, materials.sky[3]);
+  let skydome = new THREE.Mesh(geometry, materials.sky);
   addGroup(skydome, scene, 0, -100, 0);
 }
 
 
 function createGround() {
-    const geometry = new THREE.PlaneGeometry(1700, 1700, 250, 250);
-    let disMap = new THREE.TextureLoader().load('/heightmap2.png');
-    disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping;
-    
-    
-    const mat = materials.ground;
-    
-    for( let i = 0; i < 3; i++){ //Q- e a basic mesh material??? (não suporta displacementMaps)
-      mat[i].displacementMap = disMap;
-      mat[i].displacementScale = 150;
-      mat[i].displacementBias = -50;
-    }
-    
-    geometry.computeVertexNormals();
-    groundMesh = createMesh(geometry, "ground");
+  const geometry = new THREE.PlaneGeometry(1700, 1700, 250, 250);
+  let disMap = new THREE.TextureLoader().load('/heightmap2.png');
+  disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping;
+  disMap.needsUpdate = true;
 
-    scene.add(groundMesh);
-    groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.rotation.y = 0;
+  const mat = materials.ground;
+  
+  for(let i = 0; i < 3; i++){ //Q- e a basic mesh material??? (não suporta displacementMaps)
+    mat[i].displacementMap = disMap;
+    mat[i].displacementScale = 150;
+    mat[i].displacementBias = -50;
+    mat[i].flatShading = false;
+    // mat[i].metalness = 0.2;
+    // mat[i].roughness = 0.8;
+  }
+  
+  groundMesh = createMesh(geometry, "ground");
+  geometry.computeVertexNormals();
+  scene.add(groundMesh);
+
+  groundMesh.rotation.x = -Math.PI / 2;
+  groundMesh.rotation.y = 0;
 }
 
 
 function createMoon() {
-    var moon = new THREE.Object3D();
+  var moon = new THREE.Object3D();
 
-    createSphere(scene, 35, "moon" , 100, 300, 30);
-    moonLight = new THREE.DirectionalLight(0xFFF5CC , MOONLIGHT_INTENSITY);
-    moonLight.position.set(-300, 300, -200);
+  createSphere(scene, 35, "moon" , 100, 300, 30);
+  moonLight = new THREE.DirectionalLight(0xFFF5CC , MOONLIGHT_INTENSITY);
+  moonLight.position.set(-300, 300, -200);
 
-    moonLight.target.position.set(1, -1, 1);
-    scene.add(moonLight.target); // must be in the scene to work
-    moon.add(moonLight);
-    scene.add(moon);
+  moonLight.target.position.set(1, -1, 1);
+  scene.add(moonLight.target); // must be in the scene to work
+  moon.add(moonLight);
+  scene.add(moon);
 }
 
 
 function handleKey1() {
   if ((!prevKey1) && key1) {
-    for( let i = 0; i < 4; i++){ //Q- e a basic mesh???
+    for(let i = 0; i < 4; i++){ //Q- e a basic mesh???
       materials.ground[i].map = createTexture(flowerColors, "#228B22", 2, 1000, false);
       materials.ground[i].needsUpdate = true;
     }
@@ -323,10 +316,9 @@ function handleKey1() {
 
 function handleKey2() {
   if((!prevKey2) && key2) {
-    for( let i = 0; i < 4; i++){
-      materials.sky[i].map = createTexture(["#ffffff"], "#228B22", 1, 1000, true);
-      materials.sky[i].needsUpdate = true;
-    }
+    materials.sky.map = createTexture(["#ffffff"], "#228B22", 1, 1000, true);
+    materials.sky.needsUpdate = true;
+    
     prevKey2 = true;
   }
 }
@@ -426,7 +418,6 @@ function processKeys(time) {
   handleKey7();
   handleKeyR();
   handleOvniTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, ovniGroup);
-   
 }
 
 function handleOvniRotation(time) {
@@ -442,7 +433,6 @@ function update() {
   handleOvniRotation(delta);
   controls.update();
   //checkCollisions();
- 
 }
 
 /////////////
@@ -471,7 +461,7 @@ function init() {
   scene.add(ambientLight);
   const axesHelper = new THREE.AxesHelper(500);
   scene.add(axesHelper);
-  controls = new OrbitControls( persp_camera, renderer.domElement);
+  controls = new OrbitControls(persp_camera, renderer.domElement);
   controls.target.x = scene.position.x;
   controls.target.y = scene.position.y+60;
   controls.target.z = scene.position.z;
@@ -481,7 +471,7 @@ function init() {
     
   controls.update();
 
-  document.body.appendChild( VRButton.createButton( renderer ) );
+  document.body.appendChild(VRButton.createButton(renderer));
   renderer.xr.enabled = true;
   //renderer.setAnimationLoop(animate);
 
@@ -491,9 +481,9 @@ function init() {
 }
 
 function changeMaterials() {
-    for( let index = 0; index < allMeshes.length; index++) {
-        allMeshes[index].material = mats[index][selectedMaterial];
-    }
+  for(let index = 0; index < allMeshes.length; index++) {
+    allMeshes[index].material = mats[index][selectedMaterial];
+  }
 }
 
 
