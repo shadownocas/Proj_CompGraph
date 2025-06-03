@@ -1,4 +1,3 @@
-
 export const house_vertices = new Float32Array([
   0, 12, 0,   // v0
   0, 0, 0,    // v1
@@ -57,7 +56,7 @@ export const house_vertices = new Float32Array([
   44, 4,  -8-12,     // v22 5
   44, 11, -9-12,     // v23 5
   44, 10, -8-12,     // v24 5
-  0, 3,  -1,     // v17 6 
+  0, 3,  -1,     // v17 6
   0, 4,  -2,     // v18 6
   0, 11, -1,     // v19 6
   0, 10, -2,     // v20 6
@@ -73,7 +72,7 @@ export const house_vertices = new Float32Array([
   0, 4,  -8-12,     // v22 7
   0, 11, -9-12,     // v23 7
   0, 10, -8-12,     // v24 7
-  
+
   44, 12, 0,      // v73
 
   44, 12.33, -11, // v74
@@ -107,7 +106,7 @@ export const house_vertices = new Float32Array([
   0, 16, -13,      // v99
   0, 14, -16,      // v100
   0, 12, -22,      // v101
-  
+
   42, 14, -6,      // v102
   36, 14, -6,      // v103
   42, 22, -6,      // v104
@@ -208,8 +207,6 @@ export const house_accent = [
   76+8, 81+8, 80+8, // janela 9
   76+8, 78+8, 74+8, // janela 9
   78+8, 76+8, 80+8, // janela 9
-  11, 1, 15,
-  15, 13, 11,
 ];
 
 export const house_walls = [

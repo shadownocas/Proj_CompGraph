@@ -19,7 +19,7 @@ let flowerColors = ["#ffffff", "#ffff00", "#e066ff", "#00a1ff"];
 let groundMesh, prevIlumination = 0;
 
 let clock = new THREE.Clock();
-const SPOTLIGHT_INTENSITY = 10;
+const SPOTLIGHT_INTENSITY = 100000;
 const PONTUALLIGHT_INTENSITY = 100;
 const MOONLIGHT_INTENSITY = 0.5;
 const BASE = 10; // base unit for scaling
@@ -27,19 +27,18 @@ const BASE = 10; // base unit for scaling
 ////////////////////////
 /* CREATE MATERIAL(S) */
 ////////////////////////
-
 const materials = {
   house_accent: createMat({ color: "#3666e0" }),
   house_wall: createMat({ color: "#e0e0e0" }),
   house_roof: createMat({ color: "#e1341e" }),
   house_window: createMat({ color: "#261968", shininess: 150, specular: 80, emissive: "#ebdf14" }),
   wood: createMat({ color: "#8b4513" }),
-  leaves: createMat({ color: "#228B22"}),
+  leaves: createMat({ color: "#228b22" }),
   moon: createMat({ color: "#fff5cc", emissive: "#fff5cc", }),
   ovni_light: createMat({ color: "#ffdebb", emissive: "#ffdebb" }),
   ovni_body: createMat({ color: "#808080" }),
   ovni_cap: createMat({ color: "#bbfff4" }),
-  ground: createMat({ }),
+  ground: createMat({ color: "#2bae2b" }),
   sky: new THREE.MeshBasicMaterial({}),
 };
 
@@ -145,7 +144,7 @@ function createOvni() {
 
 
   // Add spotlight to the cylinder
-  spotLight = new THREE.SpotLight(0xff00ff, SPOTLIGHT_INTENSITY, 100); 
+  spotLight = new THREE.SpotLight(0xff00ff, SPOTLIGHT_INTENSITY);
   spotLight.position.set(0, propellerY, 0);
   spotLight.target = target;
   spotLight.angle = Math.PI / 8;
@@ -264,22 +263,27 @@ function createSkydome() {
   addGroup(skydome, scene, 0, -100, 0);
 }
 
-
-function createGround() {
+function displaceGround(heightmap) {
+  const displacementScale = 150;
+  const displacementeBias = -50
   const geometry = new THREE.PlaneGeometry(1700, 1700, 250, 250);
-  let disMap = new THREE.TextureLoader().load('/heightmap2.png');
-  disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping;
-  disMap.needsUpdate = true;
-
-  const mat = materials.ground;
+  let ground_vertices = geometry.getAttribute("position");
   
-  for(let i = 0; i < 3; i++){ //Q- e a basic mesh material??? (não suporta displacementMaps)
-    mat[i].displacementMap = disMap;
-    mat[i].displacementScale = 150;
-    mat[i].displacementBias = -50;
-    mat[i].flatShading = false;
-    // mat[i].metalness = 0.2;
-    // mat[i].roughness = 0.8;
+  heightmap = heightmap.image;
+  const canvas = document.createElement("canvas");
+  canvas.width = heightmap.width;
+  canvas.height = heightmap.height;
+  const context = canvas.getContext("2d");
+  context.drawImage(heightmap, 0, 0);
+  const pixels = context.getImageData(0, 0, heightmap.width, heightmap.height).data;
+
+  const xRatio = heightmap.width / 1700;
+  const yRatio = heightmap.height / 1700;
+  for(let i = 0; i < ground_vertices.count; i++) {
+    const x = Math.floor((ground_vertices.getX(i) + 1700 / 2) * xRatio)
+    const y = Math.floor((ground_vertices.getY(i) + 1700 / 2) * yRatio)
+    const height = pixels[(y * heightmap.width + x) * 4] / 255;
+    ground_vertices.setZ(i, height * displacementScale + displacementeBias);
   }
   
   groundMesh = createMesh(geometry, "ground");
@@ -288,6 +292,10 @@ function createGround() {
 
   groundMesh.rotation.x = -Math.PI / 2;
   groundMesh.rotation.y = 0;
+}
+
+function createGround() {
+  new THREE.TextureLoader().load('/heightmap2.png', displaceGround);
 }
 
 
@@ -308,6 +316,7 @@ function createMoon() {
 function handleKey1() {
   if ((!prevKey1) && key1) {
     for(let i = 0; i < 4; i++){ //Q- e a basic mesh???
+      materials.ground[i].color = new THREE.Color("#ffffff");
       materials.ground[i].map = createTexture(flowerColors, "#228B22", 2, 1000, false);
       materials.ground[i].needsUpdate = true;
     }
