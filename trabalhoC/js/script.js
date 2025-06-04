@@ -117,12 +117,12 @@ function addGroup(group, parent, x, y, z) {
   parent.add(group);
 }
 
-function createTree(x, z, base, id) { //with id pq assim n dava para fazer diff keys para a mesh...
-  const treeGroup = new THREE.Group(); //9fiz bem? assim todas as trees ficam no mesmo grupo
+function createTree(x, y, z, base, id) {
+  const treeGroup = new THREE.Group();
   addGroup(treeGroup, scene, x, 20, z);
-  createCylinder(treeGroup, 0, 0, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
+  createCylinder(treeGroup, 0, y, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
   createCylinder(treeGroup, 2/4 * base, 0.7 * base, 0,  "wood" , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
-  createElipsoide(treeGroup, 0,  2.25 * base, 0,  "leaves" , 1.5 * base, 1* base, 1.5 * base); // leaves  
+  createElipsoide(treeGroup, 0,  3 * base, 0,  "leaves" , 1.5 * base, 1* base, 1.5 * base); // leaves  
   createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  "wood" , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
   createElipsoide(treeGroup, 1.1 * base, 1 * base, 0, "leaves", 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
 }
@@ -173,21 +173,9 @@ function createOvni() {
 
 function createAllTrees() {
   let baseSizes = [10, 14, 18];
-  const rangeX = 500;
-  const rangeZ = 500;
-  const snapStep = 1; //se divisao der 23.3333 it snaps to 20
-  const usedPositions = new Set();
-
-  for (let i = 0; i < 3; i++) {
-    let randX, randZ, key;
-    do {
-      randX = Math.round(((Math.random() - 0.5) * rangeX) / snapStep) * snapStep;
-      randZ = Math.round(((Math.random() - 0.5) * rangeZ) / snapStep) * snapStep;
-      key = `${randX},${randZ}`;
-    } while (usedPositions.has(key));
-    usedPositions.add(key);
-    createTree(randX, randZ, baseSizes[i], i);
-  }
+  createTree(-147, 0, -72, baseSizes[0], 0);
+  createTree(121, 20, 31, baseSizes[1], 1);
+  createTree(12, 20, 163, baseSizes[2], 2);
 }
 
 /////////////////////
@@ -365,25 +353,40 @@ function handleKeyP() {
 
 function handleKeyQ(materialIndex) {
   if ((!prevKeyQ) && keyQ) {
+    if(selectedMaterial == 3){
+      prevIlumination = materialIndex;
+    }
+    else{
       selectedMaterial = materialIndex;
       changeMaterials();
       prevKeyQ = true;
+    }
   }
 }
 
 function handleKeyW(materialIndex) {
   if ((!prevKeyW) && keyW) {
-      selectedMaterial = materialIndex;
-      changeMaterials();
-      prevKeyW = true;
+      if(selectedMaterial == 3){
+        prevIlumination = materialIndex;
+      }
+      else{
+        selectedMaterial = materialIndex;
+        changeMaterials();
+        prevKeyW = true;
+      }
   }
 }
 
 function handleKeyE(materialIndex) {
   if ((!prevKeyE) && keyE) {
-      selectedMaterial = materialIndex;
-      changeMaterials();
-      prevKeyE = true;
+      if(selectedMaterial == 3){
+        prevIlumination = materialIndex;
+      }
+      else{
+        selectedMaterial = materialIndex;
+        changeMaterials();
+        prevKeyE = true;
+      }
     }
 }
 
