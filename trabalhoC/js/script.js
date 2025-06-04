@@ -29,7 +29,7 @@ const BASE = 10; // base unit for scaling
 ////////////////////////
 function createMat({color, emissive, specular, shininess}) {
   return [
-    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000", specular: specular ?? "#000000"}),
+    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 30, emissive: emissive ?? "#000000", specular: specular ?? "#111111"}),
     new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }),
     new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
     new THREE.MeshBasicMaterial({ color })
@@ -207,7 +207,7 @@ async function createScene() {
 function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
 
   // Generate the procedural texture
-  const textureSize = 512;
+  const textureSize = 4096;
   const canvas = document.createElement("canvas");
   canvas.width = textureSize;
   canvas.height = textureSize;
@@ -230,7 +230,9 @@ function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
     const color = dotColors[Math.floor(Math.random() * dotColors.length)];
 
     context.fillStyle = color;
-    context.fillRect(x, y, dotSize, dotSize);
+    context.beginPath();
+    context.arc(x, y, dotSize, 0, Math.PI * 2); // center at (x, y)
+    context.fill();
   }
 
   const texture = new THREE.Texture(canvas);
@@ -317,8 +319,8 @@ function createMoon() {
 
 function handleKey1() {
   if ((!prevKey1) && key1) {
-    const texture = createTexture(flowerColors, "#2bae2b", 2, 1000, false);
-    for(let i = 0; i < 4; i++){ //Q- e a basic mesh???
+    const texture = createTexture(flowerColors, "#2bae2b", 4, 10000, false);
+    for(let i = 0; i < 4; i++){
       materials.ground[i].color = new THREE.Color("#ffffff");
       materials.ground[i].map = texture;
       materials.ground[i].needsUpdate = true;
