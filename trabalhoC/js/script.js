@@ -32,7 +32,7 @@ function createMat({color, emissive, specular, shininess}) {
     new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000", specular: specular ?? "#000000"}),
     new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }),
     new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
-    new THREE.MeshBasicMaterial({ color, wireframe: true })
+    new THREE.MeshBasicMaterial({ color })
   ];
 }
 
