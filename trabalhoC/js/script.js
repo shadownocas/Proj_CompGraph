@@ -8,15 +8,15 @@ import * as House from "./house.js"
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, helper, mats = [];
+let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, mats = [];
 
-let camera_idx = 3, persp_camera, moonLight, treeGroup, ovniGroup , spotLight, ovniLights = [];
+let camera_idx = 3, persp_camera, moonLight, treeGroup, ovniGroup, cows = [], spotLight, ovniLights = [];
 
 let keyR = false, keyQ = false, keyD = false, prevKey2 = false, key2 = false, prevKeyR = false, 
 prevKeyD = false, keyP = false, keyS = false, prevKeyS = false, prevKeyP = false, prevKeyQ = false, prevKeyW = false, keyW = false, prevKeyE = false, keyE = false,
 keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey1 = false, key1 = false, prevKey7 = false;
 let flowerColors = ["#ffffff", "#ffff00", "#e066ff", "#00a1ff"];
-let groundMesh, prevIlumination = 0;
+let groundMesh, prevIlumination = 0, pixels;
 
 let clock = new THREE.Clock();
 const SPOTLIGHT_INTENSITY = 100000;
@@ -27,6 +27,15 @@ const BASE = 10; // base unit for scaling
 ////////////////////////
 /* CREATE MATERIAL(S) */
 ////////////////////////
+function createMat({color, emissive, specular, shininess}) {
+  return [
+    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000", specular: specular ?? "#000000"}),
+    new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }),
+    new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
+    new THREE.MeshBasicMaterial({ color, wireframe: true })
+  ];
+}
+
 const materials = {
   house_accent: createMat({ color: "#3666e0" }),
   house_wall: createMat({ color: "#e0e0e0" }),
@@ -38,18 +47,10 @@ const materials = {
   ovni_light: createMat({ color: "#ffdebb", emissive: "#ffdebb" }),
   ovni_body: createMat({ color: "#808080" }),
   ovni_cap: createMat({ color: "#bbfff4" }),
+  cow: createMat({ color: "#bbfff4" }),
   ground: createMat({ color: "#2bae2b" }),
   sky: new THREE.MeshBasicMaterial({}),
 };
-
-function createMat({color, emissive, specular, shininess}) {
-  return [
-    new THREE.MeshPhongMaterial({ color, shininess: shininess ?? 0, emissive: emissive ?? "#000000", specular: "#0f0f0f"}), 
-    new THREE.MeshToonMaterial({ color, emissive: emissive ?? "#000000" }), 
-    new THREE.MeshLambertMaterial({ color, emissive: emissive ?? "#000000" }),
-    new THREE.MeshBasicMaterial({ color })
-  ];
-}
 
 function createMesh(geometry, material) {
   mats.push(materials[material]);
@@ -117,10 +118,10 @@ function addGroup(group, parent, x, y, z) {
   parent.add(group);
 }
 
-function createTree(x, y, z, base, id) {
+function createTree(x, z, base, id) {
   const treeGroup = new THREE.Group();
-  addGroup(treeGroup, scene, x, 20, z);
-  createCylinder(treeGroup, 0, y, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
+  addGroup(treeGroup, scene, x, getPixel(x,z) + 20, z);
+  createCylinder(treeGroup, 0, 0, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
   createCylinder(treeGroup, 2/4 * base, 0.7 * base, 0,  "wood" , 1/12 * base, 1/12 * base, 1/3 * base, 1); // branch2
   createElipsoide(treeGroup, 0,  3 * base, 0,  "leaves" , 1.5 * base, 1* base, 1.5 * base); // leaves  
   createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  "wood" , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
@@ -148,12 +149,9 @@ function createOvni() {
   spotLight.position.set(0, propellerY, 0);
   spotLight.target = target;
   spotLight.angle = Math.PI / 8;
-  spotLight.penumbra = 0.99;
+  spotLight.penumbra = 0.9;
   ovniGroup.add(spotLight.target); // Add target to the group
   ovniGroup.add(spotLight); // Add spotlight to the group
-
-  helper = new THREE.SpotLightHelper(spotLight);
-  scene.add(helper);
 
   for (let i = 0; i < 6; i++) {
     const angle = (i / 6) * Math.PI * 2;
@@ -165,31 +163,45 @@ function createOvni() {
     //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
     addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz); // Add point light to the ovniGroup
     ovniGroup.add(pointLight);
-    const helper = new THREE.PointLightHelper(pointLight);
-    scene.add(helper);
     ovniLights.push(pointLight);
   }
 }
 
+function createCow(x, z) {
+  const cowGroup = new THREE.Group();
+  createCylinder(cowGroup, 0, 8, 0, "cow", 3, 3.5, 10, 2);
+  createCylinder(cowGroup, 6, 11, 0, "cow", 2, 2, 3, 2);
+  createCylinder(cowGroup, 4, 8/2, 2, "cow", 1, 1, 8);
+  createCylinder(cowGroup, 4, 8/2, -2, "cow", 1, 1, 8);
+  createCylinder(cowGroup, -4, 8/2, 2, "cow", 1, 1, 8);
+  createCylinder(cowGroup, -4, 8/2, -2, "cow", 1, 1, 8);
+  createCylinder(cowGroup, 6, 13, 2, "cow", 0.5, 0.5, 3).rotateX(Math.PI / 4);
+  createCylinder(cowGroup, 6, 13, -2, "cow", 0.5, 0.5, 3).rotateX(-Math.PI / 4);
+  addGroup(cowGroup, scene, x, getPixel(x, z), z);
+  cows.push(cowGroup);
+}
+
 function createAllTrees() {
   let baseSizes = [10, 14, 18];
-  createTree(-147, 0, -72, baseSizes[0], 0);
-  createTree(121, 20, 31, baseSizes[1], 1);
-  createTree(12, 20, 163, baseSizes[2], 2);
+  createTree(-147, -72, baseSizes[0], 0);
+  createTree(121, 31, baseSizes[1], 1);
+  createTree(12, 163, baseSizes[2], 2);
 }
 
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
-function createScene() {
+async function createScene() {
   scene = new THREE.Scene(); 
   scene.background = new THREE.Color(0xffffff);
-  createGround();
+  await createGround();
   createSkydome();
   createMoon();
   createAllTrees();
   createOvni();
   createHouse();
+  createCow(40, 60);
+  createCow(-40, 20);
 }
 
 function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
@@ -237,13 +249,13 @@ function createHouse() {
 
   house.scale.multiplyScalar(10/6);
 
-  addGroup(house, scene, -10, -1, 20);
-  house.rotateY(Math.PI / 3)
+  addGroup(house, scene, -100, -16, 200);
+  house.rotateY(Math.PI * 2 / 3)
 }
 
 function createSkydome() {
   // Create a sphere geometry
-  let geometry = new THREE.SphereGeometry(600, 32, 32,0,Math.PI * 2,0,Math.PI/2);
+  let geometry = new THREE.SphereGeometry(600, 32, 32, 0, Math.PI * 2,0,Math.PI/2);
 
   materials.sky.side = THREE.BackSide;
 
@@ -251,27 +263,34 @@ function createSkydome() {
   addGroup(skydome, scene, 0, -100, 0);
 }
 
-function displaceGround(heightmap) {
-  const displacementScale = 150;
-  const displacementeBias = -50
-  const geometry = new THREE.PlaneGeometry(1700, 1700, 250, 250);
+
+const displacementScale = 150;
+const displacementeBias = -50;
+let xRatio, yRatio;
+function getPixel(x, y) {
+  x = Math.floor((x + 1700 / 2) * xRatio)
+  y = Math.floor((-y + 1700 / 2) * yRatio)
+  return pixels.data[(y * pixels.width + x) * 4] / 255 * displacementScale + displacementeBias;
+}
+
+const segment_num = 250;
+async function createGround() {
+  let texture = await new THREE.TextureLoader().loadAsync('/heightmap2.png');
+  const geometry = new THREE.PlaneGeometry(1700, 1700, segment_num, segment_num);
   let ground_vertices = geometry.getAttribute("position");
   
-  heightmap = heightmap.image;
+  const heightmap = texture.image;
   const canvas = document.createElement("canvas");
   canvas.width = heightmap.width;
   canvas.height = heightmap.height;
   const context = canvas.getContext("2d");
   context.drawImage(heightmap, 0, 0);
-  const pixels = context.getImageData(0, 0, heightmap.width, heightmap.height).data;
+  pixels = context.getImageData(0, 0, heightmap.width, heightmap.height);
 
-  const xRatio = heightmap.width / 1700;
-  const yRatio = heightmap.height / 1700;
+  xRatio = (pixels.width - 1) / 1700;
+  yRatio = (pixels.height - 1) / 1700;
   for(let i = 0; i < ground_vertices.count; i++) {
-    const x = Math.floor((ground_vertices.getX(i) + 1700 / 2) * xRatio)
-    const y = Math.floor((ground_vertices.getY(i) + 1700 / 2) * yRatio)
-    const height = pixels[(y * heightmap.width + x) * 4] / 255;
-    ground_vertices.setZ(i, height * displacementScale + displacementeBias);
+    ground_vertices.setZ(i, getPixel(ground_vertices.getX(i), -ground_vertices.getY(i)));
   }
   
   groundMesh = createMesh(geometry, "ground");
@@ -279,11 +298,6 @@ function displaceGround(heightmap) {
   scene.add(groundMesh);
 
   groundMesh.rotation.x = -Math.PI / 2;
-  groundMesh.rotation.y = 0;
-}
-
-function createGround() {
-  new THREE.TextureLoader().load('/heightmap2.png', displaceGround);
 }
 
 
@@ -303,9 +317,10 @@ function createMoon() {
 
 function handleKey1() {
   if ((!prevKey1) && key1) {
+    const texture = createTexture(flowerColors, "#2bae2b", 2, 1000, false);
     for(let i = 0; i < 4; i++){ //Q- e a basic mesh???
       materials.ground[i].color = new THREE.Color("#ffffff");
-      materials.ground[i].map = createTexture(flowerColors, "#228B22", 2, 1000, false);
+      materials.ground[i].map = texture;
       materials.ground[i].needsUpdate = true;
     }
     prevKey1 = true;
@@ -314,7 +329,9 @@ function handleKey1() {
 
 function handleKey2() {
   if((!prevKey2) && key2) {
-    materials.sky.map = createTexture(["#ffffff"], "#228B22", 1, 1000, true);
+    const texture = createTexture(["#ffffff"], "#228B22", 1, 1000, true);
+    texture.wrapT = texture.wrapS = THREE.RepeatWrapping;
+    materials.sky.map = texture;
     materials.sky.needsUpdate = true;
     
     prevKey2 = true;
@@ -437,6 +454,25 @@ function handleOvniRotation(time) {
   ovniGroup.rotation.y += 5 * time;
 }
 
+function abductCows(time) {
+  for (let i = 0; i < cows.length; i++) {
+    const cowGroup = cows[i];
+    const up = new THREE.Vector3(0, 1, 0);
+    const cow_alien = ovniGroup.position.clone().sub(cowGroup.position).normalize();
+
+    if (cowGroup.position.y > 90) {
+      cowGroup.position.y = -600;
+      cows.splice(i--, 1);
+      continue;
+    }
+    if (up.angleTo(cow_alien) < Math.PI / 8) {
+      cowGroup.position.add(cow_alien.multiplyScalar(10 * time));
+    } else if (cowGroup.position.y > getPixel(cowGroup.position.x, cowGroup.position.z)) {
+      cowGroup.position.sub(up.multiplyScalar(100 * time))
+    }
+  }
+}
+
 ////////////
 /* UPDATE */
 ////////////
@@ -444,8 +480,8 @@ function update() {
   let delta = clock.getDelta();
   processKeys(delta);
   handleOvniRotation(delta);
+  abductCows(delta);
   controls.update();
-  //checkCollisions();
 }
 
 /////////////
@@ -458,7 +494,7 @@ function render() {
 ////////////////////////////////
 /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
-function init() {
+async function init() {
   renderer = new THREE.WebGLRenderer({
     antialias: true,
   });
@@ -466,21 +502,16 @@ function init() {
   renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  createScene();
+  await createScene();
   createCamera();
 
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.04);
   scene.add(ambientLight);
-  const axesHelper = new THREE.AxesHelper(500);
-  scene.add(axesHelper);
   controls = new OrbitControls(persp_camera, renderer.domElement);
   controls.target.x = scene.position.x;
   controls.target.y = scene.position.y+60;
   controls.target.z = scene.position.z;
-  controls.maxPolarAngle = Math.PI/2 - Math.PI/160;
-  controls.minDistance = 0;
-  controls.maxDistance = 500;
     
   controls.update();
 
@@ -499,10 +530,7 @@ function changeMaterials() {
   }
 }
 
-
-
 function animate() {
-  helper.update();
   update();
   
   render();
@@ -660,5 +688,5 @@ function onKeyUp(e) {
 }
 
 
-init();
+await init();
 animate();
