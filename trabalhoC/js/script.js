@@ -10,7 +10,7 @@ import * as House from "./house.js"
 //////////////////////
 let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, mats = [];
 
-let camera_idx = 3, persp_camera, moonLight, treeGroup, ovniGroup, cows = [], spotLight, ovniLights = [];
+let persp_camera, moonLight, treeGroup, ovniGroup, cows = [], spotLight, ovniLights = [];
 
 let keyR = false, keyQ = false, keyD = false, prevKey2 = false, key2 = false, prevKeyR = false, 
 prevKeyD = false, keyP = false, keyS = false, prevKeyS = false, prevKeyP = false, prevKeyQ = false, prevKeyW = false, keyW = false, prevKeyE = false, keyE = false,
@@ -105,9 +105,9 @@ function createCapsule(obj, x, y, z, material, radius, capHeight) {
 
 function createCamera() {
   persp_camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 3000);
-  persp_camera.position.x = 50;
-  persp_camera.position.z = 50;
-  persp_camera.position.y = 500;
+  persp_camera.position.x = 300;
+  persp_camera.position.y = 150;
+  persp_camera.position.z = -250;
   persp_camera.lookAt(scene.position);
 
   resizeCamera();
@@ -178,6 +178,7 @@ function createCow(x, z) {
   createCylinder(cowGroup, 6, 13, 2, "cow", 0.5, 0.5, 3).rotateX(Math.PI / 4);
   createCylinder(cowGroup, 6, 13, -2, "cow", 0.5, 0.5, 3).rotateX(-Math.PI / 4);
   addGroup(cowGroup, scene, x, getPixel(x, z), z);
+  cowGroup.rotation.y = Math.random() * 2 * Math.PI;
   cows.push(cowGroup);
 }
 
@@ -188,6 +189,16 @@ function createAllTrees() {
   createTree(12, 163, baseSizes[2], 2);
 }
 
+function createAllCows() {
+  createCow(40, 60);
+  createCow(-40, 20);
+  createCow(100, 10);
+  createCow(85, 30);
+  createCow(90, -15);
+  createCow(400, -150);
+  createCow(440, -130);
+  createCow(430, -100);
+}
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -200,8 +211,7 @@ async function createScene() {
   createAllTrees();
   createOvni();
   createHouse();
-  createCow(40, 60);
-  createCow(-40, 20);
+  createAllCows();
 }
 
 function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
@@ -433,7 +443,6 @@ function handleOvniTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
 
 function handleKey7() {
   if ((!prevKey7) && key7) {
-    camera_idx === 1 ?  camera_idx = 0 : camera_idx = 1;
     prevKey7 = true;
   }
 }
@@ -469,6 +478,7 @@ function abductCows(time) {
     }
     if (up.angleTo(cow_alien) < Math.PI / 8) {
       cowGroup.position.add(cow_alien.multiplyScalar(10 * time));
+      console.log(persp_camera);
     } else if (cowGroup.position.y > getPixel(cowGroup.position.x, cowGroup.position.z)) {
       cowGroup.position.sub(up.multiplyScalar(100 * time))
     }
