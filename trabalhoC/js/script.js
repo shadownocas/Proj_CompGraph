@@ -39,7 +39,7 @@ function createMat({color, emissive, specular, shininess}) {
 const materials = {
   house_accent: createMat({ color: "#3666e0" }),
   house_wall: createMat({ color: "#e0e0e0" }),
-  house_roof: createMat({ color: "#e1341e" }),
+  house_roof: createMat({ color: "#e1341e", shininess: 150 }),
   house_window: createMat({ color: "#261968", shininess: 150, specular: 80, emissive: "#ebdf14" }),
   wood: createMat({ color: "#8b4513" }),
   leaves: createMat({ color: "#228b22" }),
@@ -105,9 +105,9 @@ function createCapsule(obj, x, y, z, material, radius, capHeight) {
 
 function createCamera() {
   persp_camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 3000);
-  persp_camera.position.x = 300;
-  persp_camera.position.y = 150;
-  persp_camera.position.z = -250;
+  persp_camera.position.x = 400;
+  persp_camera.position.y = 100;
+  persp_camera.position.z = -10;
   persp_camera.lookAt(scene.position);
 
   resizeCamera();
@@ -118,7 +118,7 @@ function addGroup(group, parent, x, y, z) {
   parent.add(group);
 }
 
-function createTree(x, z, base, id) {
+function createTree(x, z, base) {
   const treeGroup = new THREE.Group();
   addGroup(treeGroup, scene, x, getPixel(x,z) + 20, z);
   createCylinder(treeGroup, 0, 0, 0,  "wood" , 2/6 * base, 2/6 * base, 4.5 * base); // trunk
@@ -126,6 +126,7 @@ function createTree(x, z, base, id) {
   createElipsoide(treeGroup, 0,  3 * base, 0,  "leaves" , 1.5 * base, 1* base, 1.5 * base); // leaves  
   createCylinder(treeGroup, 2/6 * base, 0.25 * base, 0,  "wood" , 1/6 * base, 1/6 * base, 1.5 * base, -1); // branch1
   createElipsoide(treeGroup, 1.1 * base, 1 * base, 0, "leaves", 2/3 * base, 1/3 * base, 2/3 * base); // leaves2
+  treeGroup.rotateY(Math.random() * Math.PI * 2)
 }
 
 function createOvni() {
@@ -184,9 +185,17 @@ function createCow(x, z) {
 
 function createAllTrees() {
   let baseSizes = [10, 14, 18];
-  createTree(-147, -72, baseSizes[0], 0);
-  createTree(121, 31, baseSizes[1], 1);
-  createTree(12, 163, baseSizes[2], 2);
+  createTree(-147, -72, baseSizes[0]);
+  createTree(121, 31, baseSizes[1]);
+  createTree(12, 163, baseSizes[2]);
+  createTree(-400, -220, baseSizes[0]);
+  createTree(-450, -210, baseSizes[0]);
+  createTree(-500, -250, baseSizes[0]);
+  createTree(-400, -320, baseSizes[0]);
+  createTree(-450, -310, baseSizes[0]);
+  createTree(-400, 350, 8);
+  createTree(-380, 320, 12);
+  createTree(-400, 280, 17);
 }
 
 function createAllCows() {
@@ -198,6 +207,10 @@ function createAllCows() {
   createCow(400, -150);
   createCow(440, -130);
   createCow(430, -100);
+  createCow(-400, -350);
+  createCow(-300, -350);
+  createCow(-320, -356);
+  createCow(-310, -330);
 }
 /////////////////////
 /* CREATE SCENE(S) */
@@ -316,7 +329,7 @@ async function createGround() {
 function createMoon() {
   var moon = new THREE.Object3D();
 
-  createSphere(scene, 35, "moon" , 100, 300, 30);
+  createSphere(scene, 35, "moon" , -300, 300, -300);
   moonLight = new THREE.DirectionalLight(0xFFF5CC , MOONLIGHT_INTENSITY);
   moonLight.position.set(-300, 300, -200);
 
@@ -341,7 +354,7 @@ function handleKey1() {
 
 function handleKey2() {
   if((!prevKey2) && key2) {
-    const texture = createTexture(["#ffffff"], "#228B22", 1, 1000, true);
+    const texture = createTexture(["#ffffff"], "#228B22", 1, 10000, true);
     texture.wrapT = texture.wrapS = THREE.RepeatWrapping;
     materials.sky.map = texture;
     materials.sky.needsUpdate = true;
@@ -364,7 +377,7 @@ function handleKeyD() {
 
 function handleKeyS() {
     if ((!prevKeyS) && keyS) {
-    spotLight.intensity ? spotLight.intensity =  0 : spotLight.intensity = SPOTLIGHT_INTENSITY;
+    spotLight.intensity ? spotLight.intensity = 0 : spotLight.intensity = SPOTLIGHT_INTENSITY;
     prevKeyS = true;
   }
 }
@@ -435,9 +448,9 @@ function handleKeyR() {
 }
 
 function handleOvniTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
-  let translX = keyRight - keyLeft;
-  let translZ = keyDown- keyUp ;
-  group.position.add(new THREE.Vector3(translX, 0, translZ).normalize().multiplyScalar(50 * time));
+  let translZ = keyRight - keyLeft;
+  let translX = keyDown - keyUp;
+  group.position.add(new THREE.Vector3(translX, 0, -translZ).normalize().multiplyScalar(50 * time));
 }
 
 
@@ -476,11 +489,14 @@ function abductCows(time) {
       cows.splice(i--, 1);
       continue;
     }
-    if (up.angleTo(cow_alien) < Math.PI / 8) {
-      cowGroup.position.add(cow_alien.multiplyScalar(10 * time));
+    if (up.angleTo(cow_alien) < Math.PI / 8 && spotLight.intensity != 0) {
+      cowGroup.position.add(cow_alien.multiplyScalar(20 * time));
       console.log(persp_camera);
-    } else if (cowGroup.position.y > getPixel(cowGroup.position.x, cowGroup.position.z)) {
-      cowGroup.position.sub(up.multiplyScalar(100 * time))
+    } else {
+      const height = getPixel(cowGroup.position.x, cowGroup.position.z);
+      if (cowGroup.position.y > height) {
+        cowGroup.position.y = Math.max(height, cowGroup.position.y - 100*time);
+      }
     }
   }
 }
