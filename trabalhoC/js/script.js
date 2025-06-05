@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VRButton } from "three/addons/webxr/VRButton.js";
-import * as Stats from "three/addons/libs/stats.module.js";
 
 import * as House from "./house.js"
 
@@ -10,13 +9,14 @@ import * as House from "./house.js"
 //////////////////////
 let scene, renderer, allMeshes = [], controls, selectedMaterial = 0, mats = [];
 
-let persp_camera, moonLight, treeGroup, ovniGroup, cows = [], spotLight, ovniLights = [];
+let persp_camera, moonLight, ovniGroup, cows = [], spotLight, ovniLights = [];
 
-let keyR = false, keyQ = false, keyD = false, prevKey2 = false, key2 = false, prevKeyR = false, 
-prevKeyD = false, keyP = false, keyS = false, prevKeyS = false, prevKeyP = false, prevKeyQ = false, prevKeyW = false, keyW = false, prevKeyE = false, keyE = false,
-keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, key7 = false, prevKey1 = false, key1 = false, prevKey7 = false;
+let keyR = false, keyQ = false, keyD = false, prevKey2 = false, key2 = false, prevKeyR = false, prevKeyD = false, keyP = false, 
+keyS = false, prevKeyS = false, prevKeyP = false, prevKeyQ = false, prevKeyW = false, keyW = false, prevKeyE = false, keyE = false,
+keyArrowUp = false, keyArrowDown = false, keyArrowLeft = false, keyArrowRight = false, prevKey1 = false, key1 = false;
+
 let flowerColors = ["#ffffff", "#ffff00", "#e066ff", "#00a1ff"];
-let groundMesh, prevIlumination = 0, pixels;
+let groundMesh, prevIlumination = 0, pixels, xRatio, yRatio;
 
 let clock = new THREE.Clock();
 const SPOTLIGHT_INTENSITY = 100000;
@@ -73,8 +73,8 @@ function createHouseMesh(vertices, faces, material, parent) {
 function createCylinder(obj, x, y, z, material, radiust, radiusb, height, rotate = null) {
   const geometry = new THREE.CylinderGeometry(radiust, radiusb, height);
   const mesh = createMesh(geometry, material);
-  
   if(rotate) mesh.rotation.z = Math.PI / 4 * rotate //rodar no eixo z
+
   addGroup(mesh, obj, x, y, z);
   return mesh;
 }
@@ -94,9 +94,9 @@ function createElipsoide(obj, x, y, z, material, radiusX, radiusY, radiusZ) {
 }
 
 function createCapsule(obj, x, y, z, material, radius, capHeight) {
-  // Calculate thetaLength to simulate a cap. Full sphere height = 2 * radius
   const thetaLength = Math.acos((radius - capHeight) / radius);
-  const geometry = new THREE.SphereGeometry(radius, 32, 32, 0, Math.PI * 2, 0, thetaLength);
+  // Create only half of the sphere
+  const geometry = new THREE.SphereGeometry(radius, 32, 32, 0, Math.PI * 2, 0, thetaLength); 
 
   const mesh = createMesh(geometry, material);
   addGroup(mesh, obj, x, y, z);
@@ -135,24 +135,20 @@ function createOvni() {
   addGroup(ovniGroup, scene, 0, ovniY, 0);
   createElipsoide(ovniGroup, 0, 0, 0,  "ovni_body" , 2 * BASE, 0.5 * BASE, 2 * BASE); 
   createCylinder(ovniGroup, 0, -0.5 * BASE, 0, "house_roof", 1 * BASE, 1 * BASE, 1/5 * BASE); // propeller
-  createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  "ovni_cap" ,   BASE , BASE); // capsule
+  createCapsule(ovniGroup, 0, 0.25 * BASE , 0,  "ovni_cap" ,   BASE , BASE);
   
-  // Create target
   const propellerY = -0.7 * BASE - 0.5 * (1/5 * BASE); // center of propeller
 
-  // Create a spotlight target below the UFO
+  // Create a spotlight target below the ovni
   const target = new THREE.Object3D();
-  addGroup(target, ovniGroup, 0, propellerY - BASE, 0); // position target below the propeller
+  addGroup(target, ovniGroup, 0, propellerY - ovniY, 0);
 
-
-  // Add spotlight to the cylinder
+  // Create spotlight
   spotLight = new THREE.SpotLight(0xff00ff, SPOTLIGHT_INTENSITY);
   spotLight.position.set(0, propellerY, 0);
   spotLight.target = target;
   spotLight.angle = Math.PI / 8;
   spotLight.penumbra = 0.9;
-  ovniGroup.add(spotLight.target); // Add target to the group
-  ovniGroup.add(spotLight); // Add spotlight to the group
 
   for (let i = 0; i < 6; i++) {
     const angle = (i / 6) * Math.PI * 2;
@@ -161,11 +157,14 @@ function createOvni() {
     createSphere(ovniGroup, 0.2*BASE, "ovni_light", angx, -0.4 * BASE , angz);
 
     const pointLight = new THREE.PointLight(0xffffff, PONTUALLIGHT_INTENSITY);
-    //pointLight.position.set(angx, ovniY - 0.8*BASE, angz);  // y = ovniY - 0.5*BASE
-    addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz); // Add point light to the ovniGroup
+    addGroup(pointLight, ovniGroup,angx, -0.8*BASE, angz);
+
+    // Add lights to ovni
     ovniGroup.add(pointLight);
     ovniLights.push(pointLight);
   }
+  ovniGroup.add(spotLight);
+
 }
 
 function createCow(x, z) {
@@ -212,6 +211,7 @@ function createAllCows() {
   createCow(-320, -356);
   createCow(-310, -330);
 }
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -228,7 +228,6 @@ async function createScene() {
 }
 
 function createTexture(dotColors, bgColor, dotSize, numDots, gradient) {
-
   // Generate the procedural texture
   const textureSize = 4096;
   const canvas = document.createElement("canvas");
@@ -279,7 +278,6 @@ function createHouse() {
 }
 
 function createSkydome() {
-  // Create a sphere geometry
   let geometry = new THREE.SphereGeometry(600, 32, 32, 0, Math.PI * 2,0,Math.PI/2);
 
   materials.sky.side = THREE.BackSide;
@@ -288,11 +286,10 @@ function createSkydome() {
   addGroup(skydome, scene, 0, -100, 0);
 }
 
-
-const displacementScale = 150;
-const displacementeBias = -50;
-let xRatio, yRatio;
 function getPixel(x, y) {
+  const displacementScale = 150;
+  const displacementeBias = -50;
+
   x = Math.floor((x + 1700 / 2) * xRatio)
   y = Math.floor((-y + 1700 / 2) * yRatio)
   return pixels.data[(y * pixels.width + x) * 4] / 255 * displacementScale + displacementeBias;
@@ -334,7 +331,7 @@ function createMoon() {
   moonLight.position.set(-300, 300, -200);
 
   moonLight.target.position.set(1, -1, 1);
-  scene.add(moonLight.target); // must be in the scene to work
+  scene.add(moonLight.target);
   moon.add(moonLight);
   scene.add(moon);
 }
@@ -453,13 +450,6 @@ function handleOvniTranslation(time, keyUp, keyDown, keyLeft, keyRight, group) {
   group.position.add(new THREE.Vector3(translX, 0, -translZ).normalize().multiplyScalar(50 * time));
 }
 
-
-function handleKey7() {
-  if ((!prevKey7) && key7) {
-    prevKey7 = true;
-  }
-}
-
 function processKeys(time) {
   handleKey1();
   handleKey2();
@@ -469,7 +459,6 @@ function processKeys(time) {
   handleKeyQ(2);
   handleKeyW(0);
   handleKeyE(1);
-  handleKey7();
   handleKeyR();
   handleOvniTranslation(time, keyArrowUp, keyArrowDown, keyArrowLeft, keyArrowRight, ovniGroup);
 }
@@ -533,7 +522,6 @@ async function init() {
   await createScene();
   createCamera();
 
-
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.04);
   scene.add(ambientLight);
   controls = new OrbitControls(persp_camera, renderer.domElement);
@@ -545,7 +533,6 @@ async function init() {
 
   document.body.appendChild(VRButton.createButton(renderer));
   renderer.xr.enabled = true;
-  //renderer.setAnimationLoop(animate);
 
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);  
@@ -562,8 +549,8 @@ function animate() {
   update();
   
   render();
+
   renderer.setAnimationLoop(animate);
-  //requestAnimationFrame(animate);
 }
 
 ////////////////////////////
@@ -585,8 +572,6 @@ function onResize() {
   resizeCamera();
 }
 
-
-
 ///////////////////////
 /* KEY DOWN CALLBACK */
 ///////////////////////
@@ -598,19 +583,14 @@ function onKeyDown(e) {
     case 50: // 2
       key2 = true;
       break;
-    case 55: // 7
-      key7 = true;
-      break;
     case 82: // R
     case 114: // r
       keyR = true;
       break;
-  
     case 81: // Q
     case 113: // q
       keyQ = true;
       break;
-  
     case 87: // W
     case 119: // w
       keyW = true;
@@ -659,10 +639,6 @@ function onKeyUp(e) {
     case 50: // 2
       key2 = false;
       prevKey2 = false;
-      break;
-    case 55: // 7
-      key7 = false;
-      prevKey7 = false;
       break;
     case 82: // R
     case 114: // r
